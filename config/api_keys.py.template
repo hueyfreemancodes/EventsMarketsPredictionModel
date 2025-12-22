@@ -1,0 +1,97 @@
+"""
+API Keys Configuration Template
+==========================================
+Copy this file to api_keys.py and fill in your actual API keys.
+
+Command: cp config/api_keys.py.template config/api_keys.py
+
+Then edit config/api_keys.py with your actual credentials.
+"""
+
+# ============================================
+# PREDICTION MARKET APIs
+# ============================================
+
+# Polymarket API Credentials
+# Get your API key from: https://polymarket.com/settings/api
+POLYMARKET_API_KEY = "your_polymarket_api_key_here"
+POLYMARKET_API_SECRET = "your_polymarket_api_secret_here"
+
+# Kalshi API Credentials
+# Register at: https://trading-api.kalshi.com/
+# Get API key and private key from: https://trading-api.kalshi.com/account/api-keys
+KALSHI_API_KEY_ID = "your_kalshi_api_key_id_here"
+KALSHI_PRIVATE_KEY = "your_kalshi_private_key_pem_here"  # PEM format string or path to .pem file
+
+# ============================================
+# SPORTS DATA APIs
+# ============================================
+
+# ESPN API (if available)
+# Note: ESPN doesn't have a public API, but some third-party services exist
+ESPN_API_KEY = "your_espn_api_key_here"  # Optional
+
+# The Odds API
+# Get your API key from: https://the-odds-api.com/
+THE_ODDS_API_KEY = "your_odds_api_key_here"  # Optional
+
+# RapidAPI Sports Endpoints (if using)
+# Get your key from: https://rapidapi.com/
+RAPIDAPI_KEY = "your_rapidapi_key_here"  # Optional
+
+# SportsDataIO (if using)
+# Get your key from: https://sportsdata.io/
+SPORTSDATAIO_API_KEY = "your_sportsdataio_key_here"  # Optional
+
+# ============================================
+# DATABASE CONFIGURATION
+# ============================================
+
+# QuestDB Configuration (usually no credentials needed for local)
+QUESTDB_HOST = "localhost"
+QUESTDB_PORT = 9009
+QUESTDB_HTTP_PORT = 9000
+
+# ============================================
+# HELPER FUNCTIONS
+# ============================================
+
+def get_polymarket_credentials():
+    """Get Polymarket API credentials"""
+    return {
+        "api_key": POLYMARKET_API_KEY,
+        "api_secret": POLYMARKET_API_SECRET
+    }
+
+def get_kalshi_credentials():
+    """Get Kalshi API credentials"""
+    return {
+        "email": KALSHI_EMAIL,
+        "password": KALSHI_PASSWORD
+    }
+
+def has_polymarket_credentials():
+    """Check if Polymarket credentials are configured"""
+    return (POLYMARKET_API_KEY != "your_polymarket_api_key_here" and 
+            POLYMARKET_API_SECRET != "your_polymarket_api_secret_here")
+
+def has_kalshi_credentials():
+    """Check if Kalshi credentials are configured"""
+    return (KALSHI_EMAIL != "your_email@example.com" and 
+            KALSHI_PASSWORD != "your_kalshi_password_here")
+
+def has_odds_api_key():
+    """Check if The Odds API key is configured"""
+    return THE_ODDS_API_KEY != "your_odds_api_key_here"
+
+def get_all_configured_apis():
+    """Return a list of all configured APIs"""
+    configured = []
+    if has_polymarket_credentials():
+        configured.append("Polymarket")
+    if has_kalshi_credentials():
+        configured.append("Kalshi")
+    if has_odds_api_key():
+        configured.append("The Odds API")
+    return configured
+

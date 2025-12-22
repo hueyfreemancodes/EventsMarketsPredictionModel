@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Data
+data/raw/*
+data/processed/*
+data/features/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/features/.gitkeep
+
+# QuestDB
+questdb_data/
+
+# Environment variables
+.env
+.env.local
+
+# API Keys (keep secure!)
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+logs/*.log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# DVC
+.dvc/
+.dvcignore
+
+# Models
+models/*.pkl
+models/*.h5
+models/*.pt
+models/*.pth
+models/*.nc
+
+# Temporary files
+*.tmp
+*.bak
+
+
+# Data files in root
+polymarket_nba_markets_*.json
+!polymarket_nba_markets_100639.json
+nba_game_markets.json
+final_training_set.csv
+# API Keys (keep secure!)
+config/api_keys.py
+
+
+# Secrets
+config/kalshi.pem
+config/*.pem
+

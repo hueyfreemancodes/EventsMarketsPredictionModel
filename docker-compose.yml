@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  collector:
+    build: .
+    container_name: nba_markets_collector
+    restart: unless-stopped
+    environment:
+      # Mac/Windows: host.docker.internal allows access to host localhost port
+      - QUESTDB_HOST=host.docker.internal
+      - QUESTDB_PORT=8812
+      - COLLECTION_DURATION_SECONDS=-1
+    volumes:
+      - ./logs:/app/logs
+
+# No volumes needed since we don't manage DB state
