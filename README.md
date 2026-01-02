@@ -7,8 +7,8 @@ A high-frequency trading system that generates alpha by analyzing order book mic
 This project captures real-time data from Polymarket and Kalshi NBA game markets, links it with historical and live NBA statistics, and trains machine learning models to predict short-term price movements (60-second horizon). By integrating cross-exchange liquidity features, the system achieves robust predictive performance.
 
 **Key Performance Metrics:**
-*   **Model**: LightGBM Regressor / Classifier
-*   **Directional Accuracy**: **~56.4%** (on 52k row dataset)
+*   **Model**: XGBoost Regressor (Best Performer)
+*   **Directional Accuracy**: **~58.10%** (on 161k row dataset)
 *   **Latency**: End-to-end processing in <50ms.
 
 ## Architecture
@@ -80,7 +80,16 @@ Train and evaluate the LightGBM models:
 python3 scripts/train_models.py
 ```
 *   Outputs accuracy metrics and feature importance plots.
-*   Current Best: **LGBM Classifier** (56%).
+*   Current Best: **XGBoost** (58.10%).
+
+**3. Live Inference**
+Generate real-time trading signals on active markets:
+```bash
+python3 scripts/live_inference.py
+```
+*   Loads the trained `xgb_model.json`.
+*   Fetches live order book data from QuestDB.
+*   Displays the predicted price change and a simple BUY/HOLD/SELL signal.
 
 ## Project Structure
 *   `src/data_collection`: Clients for Polymarket (`polymarket_client.py`) and Kalshi (`kalshi_client.py`).
@@ -90,6 +99,7 @@ python3 scripts/train_models.py
     *   `update_features.py`: Batch calculation of microstructure features.
     *   `create_training_set.py`: Joins massive time-series datasets.
     *   `train_models.py`: ML pipeline.
+    *   `live_inference.py`: Real-time XGBoost inference with metadata lookup.
 
 ## Disclaimer
 This software is for educational and research purposes only. Prediction markets involve real financial risk.

@@ -40,7 +40,13 @@ def load_dataset(path: Path) -> pd.DataFrame:
 
 def split_features_target(dataset: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     """Separates feature matrix from target variable."""
-    feature_cols = [c for c in dataset.columns if c not in NON_FEATURE_COLS]
+    # Robustly select only numeric columns for features
+    numeric_df = dataset.select_dtypes(include=['number'])
+    feature_cols = [c for c in numeric_df.columns if c not in NON_FEATURE_COLS]
+    
+    # Log the features being used (for debugging)
+    # logger.info(f"Using features: {feature_cols}")
+    
     return dataset[feature_cols], dataset['target_return_60s']
 
 def train_linear_baseline(X_train: pd.DataFrame, y_train: pd.Series, X_test: pd.DataFrame) -> np.ndarray:
@@ -172,6 +178,10 @@ def main():
     logger.info("Fitting XGBoost...")
     preds_xgb, xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
     results['XGBoost'] = calculate_metrics(y_test, preds_xgb)
+    
+    # Save the model
+    xgb_model.save_model('xgb_model.json')
+    logger.info("Saved XGBoost model to 'xgb_model.json'")
     
     # Save importance plot
     xgb.plot_importance(xgb_model, max_num_features=15, importance_type='weight', title='Feature Importance (Weight)')

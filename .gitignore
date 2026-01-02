@@ -13,9 +13,8 @@ ENV/
 data/raw/*
 data/processed/*
 data/features/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/features/.gitkeep
+data/kalshi_live/*
+data/kalshi_backfill/*
 
 # QuestDB
 questdb_data/
@@ -59,6 +58,7 @@ models/*.nc
 # Temporary files
 *.tmp
 *.bak
+collector_pids.txt
 
 
 # Data files in root
@@ -66,6 +66,9 @@ polymarket_nba_markets_*.json
 !polymarket_nba_markets_100639.json
 nba_game_markets.json
 final_training_set.csv
+final_training_set_v2.csv
+xgb_model.json
+xgb_importance.png
 # API Keys (keep secure!)
 config/api_keys.py
 

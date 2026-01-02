@@ -122,10 +122,13 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
                     k_subset = kalshi_data[kalshi_data['market_id'] == kalshi_id].sort_values('timestamp')
                     
                     if not k_subset.empty:
+                        # Preserve Kalshi timestamp for latency calc
+                        k_subset['k_timestamp'] = k_subset['timestamp']
+                        
                         # Find closest Kalshi update within 5 minutes BEFORE the Polymarket update
                         market_merged = pd.merge_asof(
                             group, 
-                            k_subset, 
+                            k_subset.drop(columns=['market_id']), # Drop ID to avoid suffix hell/confusion 
                             on='timestamp', 
                             direction='backward', 
                             tolerance=pd.Timedelta('5m')
@@ -133,11 +136,15 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
                         
                         # Calculate Arbitrage Signal
                         market_merged['arb_spread'] = market_merged['micro_price'] - market_merged['k_micro_price']
-                        market_merged['feed_latency'] = (market_merged['timestamp'] - market_merged['timestamp_right']).dt.total_seconds()
                         
-                        # Cleanup merge artifacts
-                        market_merged = market_merged.drop(columns=['market_id_y', 'timestamp_right'], errors='ignore')
-                        market_merged = market_merged.rename(columns={'market_id_x': 'market_id'})
+                        # Latency: Poly time - Kalshi time
+                        if 'k_timestamp' in market_merged.columns:
+                            market_merged['feed_latency'] = (market_merged['timestamp'] - market_merged['k_timestamp']).dt.total_seconds()
+                        else:
+                            market_merged['feed_latency'] = pd.NA
+                            
+                        # Cleanup
+                        market_merged = market_merged.drop(columns=['k_timestamp'], errors='ignore')
 
                 merged_chunks.append(market_merged)
             
