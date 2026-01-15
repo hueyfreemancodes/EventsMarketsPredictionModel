@@ -38,16 +38,16 @@ def load_dataset(path: Path) -> pd.DataFrame:
     
     return dataset
 
-def split_features_target(dataset: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+def split_features_target(dataset: pd.DataFrame, target_col: str = 'target_return_60s') -> Tuple[pd.DataFrame, pd.Series]:
     """Separates feature matrix from target variable."""
     # Robustly select only numeric columns for features
     numeric_df = dataset.select_dtypes(include=['number'])
-    feature_cols = [c for c in numeric_df.columns if c not in NON_FEATURE_COLS]
+    feature_cols = [c for c in numeric_df.columns if c not in NON_FEATURE_COLS and 'target' not in c]
     
-    # Log the features being used (for debugging)
-    # logger.info(f"Using features: {feature_cols}")
+    # Logger debug
+    # logger.info(f"Target: {target_col}")
     
-    return dataset[feature_cols], dataset['target_return_60s']
+    return dataset[feature_cols], dataset[target_col]
 
 def train_linear_baseline(X_train: pd.DataFrame, y_train: pd.Series, X_test: pd.DataFrame) -> np.ndarray:
     # Linear models choke on NaNs, tree models handle them internally
@@ -158,53 +158,50 @@ def main():
         logger.error(e)
         return
 
-    features, targets = split_features_target(dataset)
+    # User requested horizon comparison
+    targets = {
+        '60s': 'target_return_60s',
+        '3m (180s)': 'target_return_180s', 
+        '5m (300s)': 'target_return_300s'
+    }
     
-    # Simple Time-Series Split (80/20)
-    split_idx = int(len(dataset) * 0.8)
-    X_train, X_test = features.iloc[:split_idx], features.iloc[split_idx:]
-    y_train, y_test = targets.iloc[:split_idx], targets.iloc[split_idx:]
+    summary = []
     
-    logger.info(f"Training on {len(X_train)} samples, testing on {len(X_test)}")
+    for label, target_col in targets.items():
+        logger.info(f"--- Training Horizon: {label} ---")
+        
+        # Split
+        features, y = split_features_target(dataset, target_col)
+        
+        # Simple Time-Series Split (80/20)
+        split_idx = int(len(dataset) * 0.8)
+        X_train, X_test = features.iloc[:split_idx], features.iloc[split_idx:]
+        y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
+        
+        # XGBoost (Best Model)
+        preds_xgb, xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
+        metrics = calculate_metrics(y_test, preds_xgb)
+        
+        logger.info(f"[{label}] Accuracy: {metrics['Dir_Acc']:.2%}")
+        
+        summary.append({
+            'Horizon': label,
+            'MAE': metrics['MAE'],
+            'Dir_Acc': metrics['Dir_Acc']
+        })
+        
+        # Save the 180s model as the new default if requested
+        if target_col == 'target_return_180s':
+             xgb_model.save_model('xgb_model.json')
+             logger.info("Saved 3m model as default 'xgb_model.json'")
     
-    results = {}
-    
-    # Linear Baseline
-    logger.info("Fitting Linear Baseline...")
-    preds_lr = train_linear_baseline(X_train, y_train, X_test)
-    results['Linear'] = calculate_metrics(y_test, preds_lr)
-    
-    # XGBoost
-    logger.info("Fitting XGBoost...")
-    preds_xgb, xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
-    results['XGBoost'] = calculate_metrics(y_test, preds_xgb)
-    
-    # Save the model
-    xgb_model.save_model('xgb_model.json')
-    logger.info("Saved XGBoost model to 'xgb_model.json'")
-    
-    # Save importance plot
-    xgb.plot_importance(xgb_model, max_num_features=15, importance_type='weight', title='Feature Importance (Weight)')
-    plt.tight_layout()
-    plt.savefig('xgb_importance.png')
-    
-    # LightGBM Regressor
-    logger.info("Fitting LightGBM Regressor...")
-    preds_lgb = train_lgbm(X_train, y_train, X_test, y_test)
-    results['LGBM_Reg'] = calculate_metrics(y_test, preds_lgb)
-    
-    # LightGBM Classifier
-    logger.info("Fitting LightGBM Classifier...")
-    probs_lgb = train_direction_classifier(X_train, y_train, X_test, y_test)
-    results['LGBM_Class'] = calculate_metrics(y_test, probs_lgb, is_prob=True)
-    
-    # Report
-    print("\n" + "="*45)
-    print(f"{'Model':<15} | {'MAE':<10} | {'Dir Acc':<10}")
-    print("-" * 45)
-    for model, m in results.items():
-        print(f"{model:<15} | {m['MAE']:.6f}   | {m['Dir_Acc']:.2%}")
-    print("="*45 + "\n")
+    # Print Comparison
+    print("\n=== Horizon Comparison ===")
+    print(f"{'Horizon':<12} | {'MAE':<10} | {'Dir Acc':<10}")
+    print("-" * 38)
+    for res in summary:
+        print(f"{res['Horizon']:<12} | {res['MAE']:.6f}   | {res['Dir_Acc']:.2%}")
+    print("==========================\n")
 
 if __name__ == "__main__":
     main()

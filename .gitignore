@@ -59,6 +59,20 @@ models/*.nc
 *.tmp
 *.bak
 collector_pids.txt
+*.pid
+
+# User Requested Excludes
+scripts/debug/
+scripts/utils/
+*.xls
+*.xlsx
+audit_trades.csv
+API Docs/
+data/
+# Generated Metadata (Users must regenerate)
+kalshi_verified_games.json
+polymarket_nba_markets_*.json
+gamma_query_result.json
 
 
 # Data files in root

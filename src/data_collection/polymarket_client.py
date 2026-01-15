@@ -56,6 +56,9 @@ class PolymarketClient:
             'secret': api_secret,
             'passphrase': api_passphrase
         }
+        self.api_key = api_key
+        self.api_secret = api_secret
+        self.api_passphrase = api_passphrase
         
         self.mode = mode.lower()
         self.reconnect_delay = reconnect_delay
@@ -73,12 +76,18 @@ class PolymarketClient:
         self.order_book_cache = {} 
         
         # Telemetry
+        # Telemetry
         self.stats = {
             'msgs_recv': 0,
-            'snaps_saved': 0,
+            'snapshots_stored': 0,
             'errors': 0,
-            'api_calls': 0
+            'api_calls': 0,
+            'reconnects': 0,
+            'messages_received': 0,
+            'trades_stored': 0
         }
+        
+        self.subscribed_markets = set()
         
         # Dependency Check
         if self.mode == "websocket" and not WEBSOCKETS_AVAILABLE:
@@ -121,8 +130,9 @@ class PolymarketClient:
             
             self.websocket = await websockets.connect(
                 ws_url,
-                ping_interval=None,  # We'll handle ping ourselves
-                ping_timeout=None
+                # Use default ping behavior (20s interval, 20s timeout)
+                # ping_interval=20, 
+                # ping_timeout=20
             )
             self.connected = True
             self.reconnect_attempts = 0
@@ -157,7 +167,7 @@ class PolymarketClient:
             if channel_type == "market":
                 # MARKET channel uses asset_ids
                 subscribe_msg = {
-                    "type": "MARKET",
+                    "type": "market",
                     "assets_ids": asset_ids
                 }
             elif channel_type == "user":
@@ -173,7 +183,7 @@ class PolymarketClient:
                 }
                 
                 subscribe_msg = {
-                    "type": "USER",
+                    "type": "user",
                     "markets": asset_ids,  # condition IDs for user channel
                     "auth": auth
                 }
@@ -218,6 +228,11 @@ class PolymarketClient:
             # Polymarket WebSocket message format
             # Messages can be: order book updates, trades, etc.
             
+            if not isinstance(message, dict):
+                # Handle non-dict messages (e.g. list, int, string heartbeats)
+                # logger.debug(f"Ignored non-dict message: {message}")
+                return None
+            
             # Get asset/market identifier
             asset_id = message.get('asset_id') or message.get('token_id') or message.get('market')
             condition_id = message.get('condition_id') or message.get('market_id')
@@ -225,31 +240,41 @@ class PolymarketClient:
             if not asset_id and not condition_id:
                 return None
             
-            # Use condition_id as market_id for database
-            market_id = condition_id or asset_id
+            # Use asset_id as market_id for database (matches nba_game_markets.json)
+            # Only use condition_id if asset_id is missing
+            market_id = asset_id or condition_id
             
             # Get message type
-            msg_type = message.get('type', '').lower()
+            # Support both 'type' (old/standard) and 'event_type' (subscriptions-clob)
+            msg_type = (message.get('type') or message.get('event_type') or '').lower()
             
             # Handle snapshot (full order book)
             if msg_type in ['snapshot', 'l2snapshot', 'book']:
                 bids = message.get('bids', [])
                 asks = message.get('asks', [])
                 
+                # Helper to extract price/size from bid/ask item
+                def get_level(items, index):
+                    if index >= len(items):
+                        return None, None
+                        
+                    item = items[index]
+                    if isinstance(item, dict):
+                         # Dict format: {"price": "...", "size": "..."}
+                         return float(item.get('price', 0)), float(item.get('size', 0))
+                    elif isinstance(item, list):
+                         # List format: ["price", "size"]
+                         return float(item[0]), float(item[1])
+                    return None, None
+
                 # Extract top 3 levels
-                bid_price_1 = float(bids[0][0]) if len(bids) > 0 else None
-                bid_size_1 = float(bids[0][1]) if len(bids) > 0 else None
-                bid_price_2 = float(bids[1][0]) if len(bids) > 1 else None
-                bid_size_2 = float(bids[1][1]) if len(bids) > 1 else None
-                bid_price_3 = float(bids[2][0]) if len(bids) > 2 else None
-                bid_size_3 = float(bids[2][1]) if len(bids) > 2 else None
+                bid_price_1, bid_size_1 = get_level(bids, 0)
+                bid_price_2, bid_size_2 = get_level(bids, 1)
+                bid_price_3, bid_size_3 = get_level(bids, 2)
                 
-                ask_price_1 = float(asks[0][0]) if len(asks) > 0 else None
-                ask_size_1 = float(asks[0][1]) if len(asks) > 0 else None
-                ask_price_2 = float(asks[1][0]) if len(asks) > 1 else None
-                ask_size_2 = float(asks[1][1]) if len(asks) > 1 else None
-                ask_price_3 = float(asks[2][0]) if len(asks) > 2 else None
-                ask_size_3 = float(asks[2][1]) if len(asks) > 2 else None
+                ask_price_1, ask_size_1 = get_level(asks, 0)
+                ask_price_2, ask_size_2 = get_level(asks, 1)
+                ask_price_3, ask_size_3 = get_level(asks, 2)
                 
                 # Calculate mid price and spread
                 if bid_price_1 and ask_price_1:
@@ -260,8 +285,14 @@ class PolymarketClient:
                     spread = None
                 
                 # Calculate total volumes
-                total_bid_volume = sum(float(b[1]) for b in bids) if bids else 0.0
-                total_ask_volume = sum(float(a[1]) for a in asks) if asks else 0.0
+                def sum_vol(items):
+                    if not items: return 0.0
+                    if isinstance(items[0], dict):
+                        return sum(float(x.get('size', 0)) for x in items)
+                    return sum(float(x[1]) for x in items)
+
+                total_bid_volume = sum_vol(bids)
+                total_ask_volume = sum_vol(asks)
                 
                 # Determine outcome (YES/NO) - may need market info
                 outcome = message.get('outcome', 'YES')  # Default to YES
@@ -287,8 +318,61 @@ class PolymarketClient:
                     'total_ask_volume': total_ask_volume,
                 }
             
-            # Handle update (delta)
-            elif msg_type in ['update', 'l2update', 'delta']:
+            # Handle update (delta) or price_change
+            elif msg_type in ['update', 'l2update', 'delta', 'price_change']:
+                # Handle price_change event (BBO update)
+                if msg_type == 'price_change':
+                    changes = message.get('price_changes', [])
+                    if not changes:
+                        return None
+                    
+                    # We treat price_change as a Level 1 Snapshot update
+                    # It contains best_bid / best_ask for specific assets
+                    # We return the FIRST asset's data as a snapshot
+                    # In a real system, we'd handle multiple assets (split into multiple ingestions)
+                    # But here we return 1 dict.
+                    # We pick the one matching asset_id if possible
+                    
+                    target_change = changes[0] # Default to first
+                    
+                    # Extract BBO
+                    bb = float(target_change.get('best_bid', 0) or 0)
+                    ba = float(target_change.get('best_ask', 0) or 0)
+                    
+                    if bb > 0 and ba > 0:
+                        mid = (bb + ba) / 2
+                        spread = ba - bb
+                    else:
+                        mid = None
+                        spread = None
+                        
+                    return {
+                        'market_id': market_id,
+                        'outcome': 'YES', # Assumption
+                        'bid_price_1': bb if bb > 0 else None,
+                        'bid_size_1': float(target_change.get('size', 0)), # This size might be trade size, not depth?
+                                                                         # "size": "78318.39" in example seems large for depth?
+                                                                         # Actually in example: "price": "0.24", "size": "78318.39"
+                                                                         # This might be LAST TRADE info mixed in?
+                                                                         # Wait, price_change usually implies last trade / ticker.
+                                                                         # But best_bid / best_ask are current BBO.
+                                                                         # Let's use BBO for snapshot. Depth size is unknown?
+                        'bid_price_2': None,
+                        'bid_size_2': None, # Unknown
+                        'bid_price_3': None,
+                        'bid_size_3': None,
+                        'ask_price_1': ba if ba > 0 else None,
+                        'ask_size_1': None, # Unknown depth size
+                        'ask_price_2': None,
+                        'ask_size_2': None,
+                        'ask_price_3': None,
+                        'ask_size_3': None,
+                        'mid_price': mid,
+                        'spread': spread,
+                        'total_bid_volume': 0.0,
+                        'total_ask_volume': 0.0,
+                    }
+
                 # Update existing order book state
                 # This would maintain state and apply deltas
                 # For now, we'll log it
@@ -296,7 +380,7 @@ class PolymarketClient:
                 return None
             
             # Handle trade
-            elif msg_type in ['trade', 'match', 'fill']:
+            elif msg_type in ['trade', 'match', 'fill', 'last_trade_price']:
                 # Parse trade message
                 price = float(message.get('price', 0))
                 size = float(message.get('size', 0))
@@ -326,85 +410,107 @@ class PolymarketClient:
             data = json.loads(message)
             self.stats['messages_received'] += 1
             
-            # Parse message
-            parsed = self._parse_order_book_message(data)
+            # Normalize to list to handle both single and batch
+            messages = data if isinstance(data, list) else [data]
             
-            if not parsed:
-                return
-            
-            # Store in database
-            if self.ingester is None:
-                self.ingester = QuestDBIngester()
-            
-            if parsed.get('type') == 'trade':
-                # Store trade
-                trade_data = {
-                    'timestamp': datetime.now(),
-                    'market_id': parsed['market_id'],
-                    'outcome': parsed['outcome'],
-                    'platform': 'Polymarket',
-                    'price': parsed['price'],
-                    'size': parsed['size'],
-                    'side': parsed['side'],
-                    'trade_id': parsed.get('trade_id', 0),
-                }
-                try:
-                    self.ingester.ingest_trade(trade_data)
-                    self.stats['trades_stored'] += 1
-                except Exception as e:
-                    logger.error(f"Error storing trade: {e}")
-            else:
-                # Store order book snapshot
-                snapshot_data = {
-                    'timestamp': datetime.now(),
-                    'market_id': parsed['market_id'],
-                    'outcome': parsed['outcome'],
-                    'platform': 'Polymarket',
-                    'bid_price_1': parsed.get('bid_price_1'),
-                    'bid_size_1': parsed.get('bid_size_1'),
-                    'bid_price_2': parsed.get('bid_price_2'),
-                    'bid_size_2': parsed.get('bid_size_2'),
-                    'bid_price_3': parsed.get('bid_price_3'),
-                    'bid_size_3': parsed.get('bid_size_3'),
-                    'ask_price_1': parsed.get('ask_price_1'),
-                    'ask_size_1': parsed.get('ask_size_1'),
-                    'ask_price_2': parsed.get('ask_price_2'),
-                    'ask_size_2': parsed.get('ask_size_2'),
-                    'ask_price_3': parsed.get('ask_price_3'),
-                    'ask_size_3': parsed.get('ask_size_3'),
-                    'mid_price': parsed.get('mid_price'),
-                    'spread': parsed.get('spread'),
-                    'total_bid_volume': parsed.get('total_bid_volume', 0.0),
-                    'total_ask_volume': parsed.get('total_ask_volume', 0.0),
-                }
-                try:
-                    self.ingester.ingest_order_book_snapshot(snapshot_data)
-                    self.stats['snapshots_stored'] += 1
-                except Exception as e:
-                    logger.error(f"Error storing snapshot: {e}")
+            for item in messages:
+                # Parse message
+                parsed = self._parse_order_book_message(item)
+                
+                if not parsed:
+                    continue
+                
+                # Store in database
+                if self.ingester is None:
+                    self.ingester = QuestDBIngester()
+                
+                if parsed.get('type') == 'trade':
+                    # Store trade
+                    trade_data = {
+                        'timestamp': datetime.now(),
+                        'market_id': parsed['market_id'],
+                        'outcome': parsed['outcome'],
+                        'platform': 'Polymarket',
+                        'price': parsed['price'],
+                        'size': parsed['size'],
+                        'side': parsed['side'],
+                        'trade_id': parsed.get('trade_id', 0),
+                    }
+                    try:
+                        self.ingester.ingest_trade(trade_data)
+                        self.stats['trades_stored'] += 1
+                    except Exception as e:
+                        logger.error(f"Error storing trade: {e}")
+                else:
+                    # Store order book snapshot
+                    snapshot_data = {
+                        'timestamp': datetime.now(),
+                        'market_id': parsed['market_id'],
+                        'outcome': parsed['outcome'],
+                        'platform': 'Polymarket',
+                        'bid_price_1': parsed.get('bid_price_1'),
+                        'bid_size_1': parsed.get('bid_size_1'),
+                        'bid_price_2': parsed.get('bid_price_2'),
+                        'bid_size_2': parsed.get('bid_size_2'),
+                        'bid_price_3': parsed.get('bid_price_3'),
+                        'bid_size_3': parsed.get('bid_size_3'),
+                        'ask_price_1': parsed.get('ask_price_1'),
+                        'ask_size_1': parsed.get('ask_size_1'),
+                        'ask_price_2': parsed.get('ask_price_2'),
+                        'ask_size_2': parsed.get('ask_size_2'),
+                        'ask_price_3': parsed.get('ask_price_3'),
+                        'ask_size_3': parsed.get('ask_size_3'),
+                        'mid_price': parsed.get('mid_price'),
+                        'spread': parsed.get('spread'),
+                        'total_bid_volume': parsed.get('total_bid_volume', 0.0),
+                        'total_ask_volume': parsed.get('total_ask_volume', 0.0),
+                    }
+                    try:
+                        self.ingester.ingest_order_book_snapshot(snapshot_data)
+                        self.stats['snapshots_stored'] += 1
+                    except Exception as e:
+                        logger.error(f"Error storing snapshot: {e}")
             
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON message: {e}")
             self.stats['errors'] += 1
         except Exception as e:
             logger.error(f"Error handling message: {e}")
+            logger.debug(f"Crash details: {type(message)}")
+            import traceback
+            logger.debug(traceback.format_exc())
             self.stats['errors'] += 1
-    
+            
     async def _listen(self):
         """Listen for WebSocket messages"""
         if not self.websocket:
             return
         
         # Start ping thread
-        ping_task = asyncio.create_task(self._ping_loop())
+        # ping_task = asyncio.create_task(self._ping_loop())
         
         try:
-            async for message in self.websocket:
-                # Handle PONG responses
-                if message == "PONG":
+            while self.connected and self.websocket:
+                try:
+                    message = await self.websocket.recv()
+                    
+                    if not message:
+                         continue
+                         
+                    # Handle PONG responses
+                    if message == "PONG":
+                        continue
+                    
+                    await self._handle_message(message)
+                except asyncio.TimeoutError:
                     continue
-                
-                await self._handle_message(message)
+                except Exception as e:
+                    # Check if connection closed
+                    if not self.websocket or self.websocket.closed:
+                        raise websockets.exceptions.ConnectionClosed(1006, "Closed loop")
+                    logger.error(f"Error receiving message: {e}")
+                    await asyncio.sleep(1)
+                    
         except websockets.exceptions.ConnectionClosed:
             logger.warning("WebSocket connection closed")
             self.connected = False
@@ -412,7 +518,8 @@ class PolymarketClient:
             logger.error(f"Error in WebSocket listener: {e}")
             self.connected = False
         finally:
-            ping_task.cancel()
+             pass
+             # if ping_task: ping_task.cancel()
     
     async def _ping_loop(self):
         """Send PING messages every 10 seconds to keep connection alive"""
@@ -420,7 +527,8 @@ class PolymarketClient:
             try:
                 await asyncio.sleep(10)
                 if self.websocket:
-                    await self.websocket.send("PING")
+                    # Send JSON ping
+                    await self.websocket.send('{"type":"ping"}')
             except Exception as e:
                 logger.debug(f"Error in ping loop: {e}")
                 break

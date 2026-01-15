@@ -6,7 +6,11 @@ Fetches linked market IDs from the database and begins high-frequency order book
 import sys
 import os
 import asyncio
+import os
+import signal
+import sys
 import json
+from datetime import datetime
 import psycopg2
 from typing import List, Dict
 
@@ -15,6 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.data_collection.polymarket_client import PolymarketClient
 from src.data_collection.logger import logger
+from scripts.fetch_markets import fetch_active_nba_markets
+from scripts.ingest_linkages import ingest_data
+import time
 
 # Configuration Defaults (Environment variables take precedence)
 DB_HOST = os.getenv('QUESTDB_HOST', 'localhost')
@@ -46,48 +53,20 @@ def fetch_target_market_ids() -> List[str]:
 def load_market_metadata(filepath: str) -> Dict:
     try:
         with open(filepath, 'r') as f:
-            return json.load(f)
+            raw_data = json.load(f)
+            # Convert List to Dict keyed by market_id
+            if isinstance(raw_data, list):
+                return {str(m.get('market_id')): m for m in raw_data}
+            return raw_data
     except FileNotFoundError:
         logger.error(f"Metadata file not found: {filepath}")
         return {}
 
 
 async def main():
-    logger.info("Starting Targeted Data Collector...")
-
-    # 1. Fetch Targets
-    target_ids = fetch_target_market_ids()
-    if not target_ids:
-        logger.warning("No linked markets found in DB. Exiting.")
-        return
-
-    logger.info(f"Loaded {len(target_ids)} market targets from QuestDB.")
-
-    # 2. Correlate with Asset IDs (Token IDs)
-    # TODO: Move this filename to a config variable
-    metadata = load_market_metadata('polymarket_nba_markets_100639.json')
+    logger.info("Starting Smart Targeted Data Collector...")
     
-    subscription_targets = []
-    for market_id in target_ids:
-        market_data = metadata.get(market_id)
-        if not market_data:
-            continue
-            
-        asset_ids = market_data.get('clobTokenIds', [])
-        if asset_ids:
-            subscription_targets.append({
-                'condition_id': market_id,
-                'asset_ids': asset_ids
-            })
-
-    if not subscription_targets:
-        logger.error("No valid asset IDs found for targets. Aborting.")
-        return
-
-    logger.info(f"Initializing collection for {len(subscription_targets)} markets.")
-
-    # 3. Initialize Client
-    # Attempt to load API keys if present, otherwise default to public
+    # Initialize Client
     api_key = api_secret = api_pass = None
     try:
         from config.api_keys import get_polymarket_credentials, has_polymarket_credentials
@@ -104,33 +83,91 @@ async def main():
         api_key=api_key,
         api_secret=api_secret,
         api_passphrase=api_pass,
-        mode="rest",  # REST allows for more reliable snapshot pacing than WS
+        mode="websocket", # Switch to WSS
         polling_interval=5
     )
 
     if not client.enabled:
         return
+        
+    # Connect WSS
+    if client.mode == "websocket":
+        logger.info("Connecting to WSS...")
+        await client.connect(channel_type="market")
+        # Start listener task
+        asyncio.create_task(client._listen())
 
-    # 4. Run Collection Loop
-    if DURATION < 0:
-        logger.info("Mode: Continuous Collection (Press Ctrl+C to stop)")
+    # Loop Variables
+    last_refresh_time = 0
+    REFRESH_INTERVAL = 900  # 15 minutes
+    subscribed_tokens = set()
+    
+    logger.info("Entering Continuous Smart Loop (Ctrl+C to stop)")
+    client.running = True
+
+    while True:
         try:
-            await client.start_polling(markets=subscription_targets)
+            current_time = time.time()
+            
+            # --- 1. REFRESH PHASE ---
+            if current_time - last_refresh_time > REFRESH_INTERVAL:
+                logger.info("🔄 Refreshing Active Markets List...")
+                
+                # A. Fetch Active Markets (Gamma API)
+                loop = asyncio.get_running_loop()
+                markets = await loop.run_in_executor(None, fetch_active_nba_markets)
+                
+                if markets:
+                    # B. Update JSON
+                    with open('nba_game_markets.json', 'w') as f:
+                        json.dump(markets, f, indent=2)
+                        
+                    # Dedupe
+                    unique_markets = list({m['clob_token_id']: m for m in markets}.values())
+                    full_metadata = {str(m.get('clob_token_id')): m for m in unique_markets}
+                    
+                    # C. Ingest to DB
+                    await loop.run_in_executor(None, ingest_data)
+                    
+                    # D. Identify New Tokens to Subscribe
+                    new_tokens_to_sub = []
+                    current_tokens = set()
+                    
+                    for token_id, mdata in full_metadata.items():
+                        # We are keyed by Token ID, so this IS the asset ID
+                        if token_id:
+                            current_tokens.add(token_id)
+                            if token_id not in subscribed_tokens:
+                                new_tokens_to_sub.append(token_id)
+                    
+                    # E. Subscribe to New Tokens
+                    if new_tokens_to_sub and client.connected:
+                        logger.info(f"Subscribing to {len(new_tokens_to_sub)} new tokens...")
+                        await client.subscribe_to_markets(new_tokens_to_sub, channel_type="market")
+                        subscribed_tokens.update(new_tokens_to_sub)
+                    
+                    logger.info(f"✅ Targets Updated: Tracking {len(current_tokens)} Active Tokens")
+                    last_refresh_time = current_time
+                else:
+                    logger.warning("No active markets found during refresh.")
+            
+            # --- 2. REST FALLBACK / KEEP ALIVE ---
+            if client.mode == "rest":
+                 # Fallback polling logic (removed for brevity/focus on WSS)
+                 pass
+            
+            # --- 3. RATE LIMIT / PACE ---
+            await asyncio.sleep(5)
+            
         except asyncio.CancelledError:
-            logger.info("Process interrupted.")
-    else:
-        logger.info(f"Mode: Batch Collection ({DURATION}s)")
-        try:
-            task = asyncio.create_task(client.start_polling(markets=subscription_targets))
-            await asyncio.sleep(DURATION)
-            client.running = False
-            await task
+            logger.info("Stopping...")
+            break
         except Exception as e:
-            logger.error(f"Collection error: {e}")
+            logger.error(f"Error in Smart Loop: {e}")
+            await asyncio.sleep(10)
 
-    # 5. Report
-    stats = client.get_stats()
-    logger.info(f"Session Complete. Snapshots captured: {stats['snapshots_stored']}")
+    # Cleanup
+    await client.stop()
 
 
 if __name__ == "__main__":

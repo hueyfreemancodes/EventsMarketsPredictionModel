@@ -75,8 +75,9 @@ def update_features():
     try:
         # 1. Get List of Markets to Process
         # Ideally only active linked markets, but for now all linked markets
+        # 1. Get List of Markets that actually have data
         with ingester.conn.cursor() as cur:
-            cur.execute("SELECT DISTINCT market_id FROM market_linkages")
+            cur.execute("SELECT DISTINCT market_id FROM order_book_snapshots")
             market_ids = [row[0] for row in cur.fetchall() if row[0]]
             
         logger.info(f"Found {len(market_ids)} linked markets to process.")
@@ -95,14 +96,8 @@ def update_features():
             
             # 4. Ingest Results
             if features:
-                # Ingest in batch? Method expects single?
-                # The existing class has `ingest_microstructure_features` (singular).
-                # We can loop. Transactions are handled per insert in the current class?
-                # Actually Ingester methods usually commit per call or batch.
-                # Let's inspect `ingest_microstructure_features`: It commits every call.
-                # Optimization: Could add batch ingestion later. For now, loop is fine for offline update.
-                for feat in features:
-                    ingester.ingest_microstructure_features(feat)
+                # Use new batch ingestion for performance
+                ingester.ingest_microstructure_features_batch(features)
                 
             logger.info(f"[{idx+1}/{len(market_ids)}] {market_id}: Updated {len(features)} records.")
             

@@ -11,6 +11,7 @@ import time
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
+import pandas as pd
 
 # Add project root to path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

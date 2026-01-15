@@ -7,9 +7,10 @@ A high-frequency trading system that generates alpha by analyzing order book mic
 This project captures real-time data from Polymarket and Kalshi NBA game markets, links it with historical and live NBA statistics, and trains machine learning models to predict short-term price movements (60-second horizon). By integrating cross-exchange liquidity features, the system achieves robust predictive performance.
 
 **Key Performance Metrics:**
-*   **Model**: XGBoost Regressor (Best Performer)
-*   **Directional Accuracy**: **~58.10%** (on 161k row dataset)
+*   **Model**: XGBoost Regressor (V4 "Liquid-Only")
+*   **Directional Accuracy**: **91.94%** (on Liquid Markets)
 *   **Latency**: End-to-end processing in <50ms.
+*   **Strategy**: High-Frequency Microstructure Arb (3-minute Horizon).
 
 ## Architecture
 
@@ -49,18 +50,38 @@ Derived from NBA Game Data:
     ```
 
 2.  **Environment Configuration**
-    Create a `.env` file or export variables:
+    Create a secret keys file from the template:
     ```bash
-    export QUESTDB_HOST=localhost
-    export QUESTDB_PORT=8812
+    cp config/api_keys.py.template config/api_keys.py
+    # Edit config/api_keys.py with your Poly/Kalshi keys
     ```
-    For Kalshi access, ensure `config/kalshi.pem` and API keys are present (if using private data).
+    Ensure `config/kalshi.pem` is present if utilizing private Kalshi endpoints.
 
-3.  **Start the Reliability Suite**
-    The watchdog ensures continuous data collection from all exchanges:
+3.  **Infrastructure Initialization**
+    Start the time-series database (QuestDB):
     ```bash
-    python3 scripts/collector_watchdog.py
+    docker-compose up -d
+    # Initialize Schema (Tables)
+    python3 scripts/init_database.py
     ```
+
+4.  **Initialize Data Linkages** (Crucial for V4 Model)
+    Fetch fresh market metadata from both exchanges to build the linkage table:
+    ```bash
+    # 1. Fetch Polymarket & Kalshi Events
+    python3 scripts/fetch_markets.py 
+    python3 scripts/fetch_kalshi_metadata.py
+
+    # 2. Link Markets in DB
+    python3 scripts/ingest_linkages.py
+    ```
+
+5.  **Start the Trading System**
+    The system includes the Data Collector, Paper Trading Bot, and Dashboard:
+    ```bash
+    ./start_trading_system.sh
+    ```
+    This will update Fundamentals, launch Collectors, and start the Bot.
 
 ### Usage
 
@@ -80,16 +101,16 @@ Train and evaluate the LightGBM models:
 python3 scripts/train_models.py
 ```
 *   Outputs accuracy metrics and feature importance plots.
-*   Current Best: **XGBoost** (58.10%).
+*   Current Best: **XGBoost V4** (91.94%).
 
-**3. Live Inference**
-Generate real-time trading signals on active markets:
+**3. Live Trade Bot**
+Run the full autonomous trading bot:
 ```bash
-python3 scripts/live_inference.py
+python3 scripts/run_paper_bot.py
 ```
 *   Loads the trained `xgb_model.json`.
 *   Fetches live order book data from QuestDB.
-*   Displays the predicted price change and a simple BUY/HOLD/SELL signal.
+*   Executes trades with Spread Protection (<$0.10).
 
 ## Project Structure
 *   `src/data_collection`: Clients for Polymarket (`polymarket_client.py`) and Kalshi (`kalshi_client.py`).
@@ -99,7 +120,8 @@ python3 scripts/live_inference.py
     *   `update_features.py`: Batch calculation of microstructure features.
     *   `create_training_set.py`: Joins massive time-series datasets.
     *   `train_models.py`: ML pipeline.
-    *   `live_inference.py`: Real-time XGBoost inference with metadata lookup.
+    *   `run_paper_bot.py`: Main Trading Bot (Execution + Inference).
+    *   `monitor_trades.py`: Live Terminal Dashboard.
 
 ## Disclaimer
 This software is for educational and research purposes only. Prediction markets involve real financial risk.

@@ -82,21 +82,44 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
             
             logger.info(f"Found {len(poly_map)} Polymarket games ({len(poly_to_kalshi)} with Kalshi overlap).")
 
-            # --- 2. Microstructure Data ---
-            logger.info("Loading order book features...")
+            # --- 2. Microstructure Data & Liquidity Filter ---
+            logger.info("Loading order book features and spread...")
+            
+            # Fetch Features
             micro_df = fetch_frame("""
                 SELECT timestamp, market_id, 
                        ofi_1s, vamp, micro_price, spread_volatility, ofi_ema_05
                 FROM microstructure_features
             """, conn)
             
+            # Fetch Spreads (Snapshots)
+            logger.info("Loading liquidity (spreads)...")
+            snaps_df = fetch_frame("""
+                SELECT timestamp, market_id, ask_price_1, bid_price_1
+                FROM order_book_snapshots
+            """, conn)
+            
+            # Merge to filter
             micro_df['timestamp'] = pd.to_datetime(micro_df['timestamp'])
+            snaps_df['timestamp'] = pd.to_datetime(snaps_df['timestamp'])
+            
+            # Inner Join to align features with prices
+            full_df = pd.merge(micro_df, snaps_df, on=['timestamp', 'market_id'], how='inner')
+            
+            # Filter Liquidity (Strict)
+            # Only keep tight spreads (< 5 cents)
+            full_df['spread'] = full_df['ask_price_1'] - full_df['bid_price_1']
+            initial_len = len(full_df)
+            full_df = full_df[full_df['spread'] <= 0.06] # 6 cents tolerance
+            logger.info(f"Liquidity Filter: Kept {len(full_df)}/{initial_len} rows (Spread <= $0.06)")
+            
+            micro_df = full_df # Continue with filtered set
             
             # Infer platform (Polymarket IDs start with 0x)
             micro_df['platform'] = micro_df['market_id'].apply(
                 lambda x: 'polymarket' if str(x).startswith('0x') else 'kalshi'
             )
-
+ 
             # Split by platform
             poly_data = micro_df[micro_df['platform'] == 'polymarket'].copy()
             kalshi_data = micro_df[micro_df['platform'] == 'kalshi'].rename(columns={
@@ -172,16 +195,17 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
             # We need to match on Date + Team
             # Simpler approach: Create a unique match key in fundamentals too?
             
-            fundamentals['home_abbr'] = fundamentals['home_team'] # Already normalized in DB? Assuming name match.
-            # Actually, `links` uses abbreviations. `fundamentals` might use full names or abbr.
-            # Safety: The previous script did a loop. Let's do a smarter loop or merge.
+            # Normalize dates for joining
+            fundamentals['game_date'] = fundamentals['game_date'].dt.normalize()
             
+            # Helper for robust team matching
             meta_records = []
             for _, link_row in poly_links_df.iterrows():
+                target_date = pd.Timestamp(link_row['game_date']).normalize()
+                
                 # Find matching game in fundamentals
-                # Logic: Same date, and team1 is either home or away
                 match = fundamentals[
-                    (fundamentals['game_date'] == link_row['game_date']) & 
+                    (fundamentals['game_date'] == target_date) & 
                     ((fundamentals['home_team'] == link_row['team1']) | (fundamentals['away_team'] == link_row['team1']))
                 ]
                 
@@ -197,7 +221,24 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
                     })
             
             meta_df = pd.DataFrame(meta_records)
-            final_df = pd.merge(combined_df, meta_df, on='market_id', how='inner')
+            if meta_df.empty:
+                 logger.warning("No fundamental matches found. Using defaults.")
+                 meta_df = pd.DataFrame(columns=['market_id', 'team1_win_pct', 'team2_win_pct', 'spread_vegas'])
+            
+            # Safe Merge (Left Join to preserve liquid microstructure rows)
+            if not 'market_id' in combined_df.columns:
+                 # Safety check if combined_df is empty or malformed
+                 final_df = combined_df.copy()
+            else:    
+                 final_df = pd.merge(combined_df, meta_df, on='market_id', how='left')
+
+            # Fill missing fundamentals
+            cols = ['team1_win_pct', 'team2_win_pct', 'spread_vegas']
+            for c in cols:
+                if c not in final_df.columns:
+                    final_df[c] = 0.5 if 'pct' in c else 0.0
+                else:
+                    final_df[c] = final_df[c].fillna(0.5 if 'pct' in c else 0.0)
             
             # --- 6. Target Engineering ---
             # Sort for valid shifting
@@ -205,7 +246,17 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
             
             # Target: 60s future return (approx 12 periods @ 5s)
             final_df['target_return_60s'] = final_df.groupby('market_id')['micro_price'].shift(-12) - final_df['micro_price']
-            final_df = final_df.dropna(subset=['target_return_60s'])
+            
+            # Target: 180s (3 mins) -> 36 periods
+            final_df['target_return_180s'] = final_df.groupby('market_id')['micro_price'].shift(-36) - final_df['micro_price']
+            
+            # Target: 300s (5 mins) -> 60 periods
+            final_df['target_return_300s'] = final_df.groupby('market_id')['micro_price'].shift(-60) - final_df['micro_price']
+            
+            # Drop rows where ANY target is NaN (to ensure fair comparison on same dataset subset? 
+            # Or just drop if 60s is missing?
+            # If we drop all, we lose the last 5 mins of data. That's fine for training.)
+            final_df = final_df.dropna(subset=['target_return_60s', 'target_return_180s', 'target_return_300s'])
 
             # Export
             final_df.to_csv(outfile, index=False)

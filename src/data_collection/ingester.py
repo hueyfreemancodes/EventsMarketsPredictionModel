@@ -275,18 +275,34 @@ class QuestDBIngester:
     
     def ingest_microstructure_features(self, data: Dict):
         """
-        Ingest microstructure features data
-        
-        Args:
-            data: Dictionary with fields matching microstructure_features table
+        Ingest microstructure features data (single record)
         """
+        self.ingest_microstructure_features_batch([data])
+
+    def ingest_microstructure_features_batch(self, data_list: List[Dict]):
+        """
+        Ingest microstructure features data (batch)
+        """
+        if not data_list:
+            return
+
         self._ensure_connected()
         cursor = self.conn.cursor()
         
         try:
-            # Convert numpy types to native Python types
-            data = self._convert_numpy_types(data)
-            
+            # Prepare data and convert numpy types
+            converted_rows = []
+            for data in data_list:
+                d = self._convert_numpy_types(data)
+                converted_rows.append((
+                    d.get('timestamp'), d.get('market_id'), d.get('outcome'),
+                    d.get('ofi_1s'), d.get('ofi_5s'), d.get('ofi_15s'), d.get('ofi_60s'),
+                    d.get('vamp'), d.get('micro_price'), d.get('obi_weighted'),
+                    d.get('kyle_lambda'), d.get('pin_score'),
+                    d.get('volume_imbalance'), d.get('depth_ratio'), d.get('spread_volatility'),
+                    d.get('ofi_ema_01'), d.get('ofi_ema_03'), d.get('ofi_ema_05')
+                ))
+
             insert_sql = """
             INSERT INTO microstructure_features (
                 timestamp, market_id, outcome,
@@ -295,23 +311,17 @@ class QuestDBIngester:
                 kyle_lambda, pin_score,
                 volume_imbalance, depth_ratio, spread_volatility,
                 ofi_ema_01, ofi_ema_03, ofi_ema_05
-            ) VALUES (
-                %(timestamp)s, %(market_id)s, %(outcome)s,
-                %(ofi_1s)s, %(ofi_5s)s, %(ofi_15s)s, %(ofi_60s)s,
-                %(vamp)s, %(micro_price)s, %(obi_weighted)s,
-                %(kyle_lambda)s, %(pin_score)s,
-                %(volume_imbalance)s, %(depth_ratio)s, %(spread_volatility)s,
-                %(ofi_ema_01)s, %(ofi_ema_03)s, %(ofi_ema_05)s
-            )
+            ) VALUES %s
             """
             
-            cursor.execute(insert_sql, data)
+            execute_values(cursor, insert_sql, converted_rows)
             self.conn.commit()
-            logger.debug(f"Ingested microstructure features for {data.get('market_id')}")
+            logger.debug(f"Ingested {len(data_list)} microstructure features records")
             
         except Exception as e:
             self.conn.rollback()
-            logger.error(f"Error ingesting microstructure features: {e}")
+            logger.error(f"Error ingesting microstructure features batches: {e}")
+            print(f"DEBUG Error: {e}") # helpful for CLI debug
             raise
         finally:
             cursor.close()

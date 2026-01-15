@@ -14,16 +14,15 @@ def ingest_data():
     # 1. Ensure table exists
     ingester.create_market_linkages_table()
     
-    # 2. Clear existing data (for clean re-ingest)
-    print("Clearing existing data...")
-    try:
-        cur = ingester.conn.cursor()
-        cur.execute("TRUNCATE TABLE market_linkages")
-        ingester.conn.commit()
-        cur.close()
-    except Exception as e:
-        print(f"Truncate failed (might be empty): {e}")
-        ingester.conn.rollback()
+    # 2. No Truncate - we want to preserve history
+    # The ingestion method below should handle duplicates (QuestDB usually appends, so we might need dedupe logic or just accept append)
+    # Actually, QuestDB is append-only for the most part. 
+    # But market_linkages is a metadata table. 
+    # If we insert the same ID twice?
+    # QuestDB doesn't enforce primary keys in the traditional sense on standard tables unless designated.
+    # Ideally we check existence or use deduplication query later. 
+    # For now, removing Truncate is the key safety step.
+    pass
     
     # Files to ingest
     files = [
