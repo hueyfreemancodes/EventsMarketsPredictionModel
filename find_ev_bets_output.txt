@@ -1,0 +1,317 @@
+2026-04-22 19:03:55,910 [INFO] === Finding +EV NBA Bets ===
+Fetching active NBA markets (Tag: 745)...
+--- Fetching markets (closed=false) ---
+Fetching offset 0...
+DEBUG RAW MARKET: {
+  "id": "1974059",
+  "question": "NBA Playoffs: Raptors vs. Cavaliers Total Games O/U 5.5",
+  "conditionId": "0xbac2061e1f9e7be19cfc82e3762aa093200132eab11211c8ac687f7bde422226",
+  "slug": "nba-playoffs-raptors-vs-cavaliers-total-games-ou-5pt5",
+  "resolutionSource": "",
+  "endDate": "2026-06-01T00:00:00Z",
+  "liquidity": "3601.5908",
+  "startDate": "2026-04-13T21:03:31.301Z",
+  "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/nba-playoffs-raptors-vs-cavaliers-total-games-ou-jj3pT46KDuAn.png",
+  "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/nba-playoffs-raptors-vs-cavaliers-total-games-ou-jj3pT46KDuAn.png",
+  "description": "This market will resolve to \u201cOver\u201d if more than 5.5 games are played during the 2026 NBA Playoffs First Round series between the Toronto Raptors and Cleveland Cavaliers. Otherwise, this market will resolve to \u201cUnder\u201d.\n\nIf a partial series is played and not completed by May 31, 2026, 11:59 PM ET, this market will resolve according to the number of games played.\n\nIf the 2026 NBA Playoffs are cancelled, postponed after May 31, 2026, 11:59 PM ET, or there is otherwise no winner declared within that timeframe, this market will resolve to 50-50.\n\nThe resolution source for this market will be official information from the NBA; however, a consensus of credible reporting may also be used.",
+  "outcomes": "[\" Over 5.5\", \"Under 5.5\"]",
+  "outcomePrices": "[\"0.335\", \"0.665\"]",
+  "volume": "1533.3089899999998",
+  "active": true,
+  "closed": false,
+  "marketMakerAddress": "",
+  "createdAt": "2026-04-13T20:57:58.27162Z",
+  "updatedAt": "2026-04-22T22:57:07.448742Z",
+  "new": false,
+  "featured": false,
+  "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+  "archived": false,
+  "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+  "restricted": true,
+  "groupItemTitle": "",
+  "groupItemThreshold": "0",
+  "questionID": "0xdd8c44ae68544b660437d7d885ae70bb4716bbc91ce8e37df4f7b35c58bd08f8",
+  "enableOrderBook": true,
+  "orderPriceMinTickSize": 0.01,
+  "orderMinSize": 5,
+  "volumeNum": 1533.3089899999998,
+  "liquidityNum": 3601.5908,
+  "endDateIso": "2026-06-01",
+  "startDateIso": "2026-04-13",
+  "hasReviewedDates": true,
+  "volume24hr": 58.666701,
+  "volume1wk": 1426.9879449999999,
+  "volume1mo": 1533.3089899999998,
+  "volume1yr": 1533.3089899999998,
+  "clobTokenIds": "[\"73894584229183468493963244023339957615084375989107503228603209828243548144274\", \"73580285024094736101434556087138889496989838543551490662239778316136981230332\"]",
+  "umaBond": "500",
+  "umaReward": "5",
+  "volume24hrClob": 58.666701,
+  "volume1wkClob": 1426.9879449999999,
+  "volume1moClob": 1533.3089899999998,
+  "volume1yrClob": 1533.3089899999998,
+  "volumeClob": 1533.3089899999998,
+  "liquidityClob": 3601.5908,
+  "makerBaseFee": 1000,
+  "takerBaseFee": 1000,
+  "customLiveness": 0,
+  "acceptingOrders": true,
+  "negRisk": false,
+  "negRiskRequestID": "",
+  "ready": false,
+  "funded": false,
+  "acceptingOrdersTimestamp": "2026-04-13T21:02:27Z",
+  "cyom": false,
+  "competitive": 0.9734965562559322,
+  "pagerDutyNotificationEnabled": false,
+  "approved": true,
+  "rewardsMinSize": 50,
+  "rewardsMaxSpread": 4.5,
+  "spread": 0.09,
+  "oneDayPriceChange": -0.04,
+  "oneWeekPriceChange": -0.185,
+  "lastTradePrice": 0.37,
+  "bestBid": 0.29,
+  "bestAsk": 0.38,
+  "automaticallyActive": true,
+  "clearBookOnStart": true,
+  "manualActivation": false,
+  "negRiskOther": false,
+  "umaResolutionStatuses": "[]",
+  "pendingDeployment": false,
+  "deploying": false,
+  "deployingTimestamp": "2026-04-13T20:59:06.750242Z",
+  "rfqEnabled": false,
+  "holdingRewardsEnabled": false,
+  "feesEnabled": true,
+  "requiresTranslation": false,
+  "feeType": "sports_fees_v2",
+  "feeSchedule": {
+    "exponent": 1,
+    "rate": 0.03,
+    "takerOnly": true,
+    "rebateRate": 0.25
+  }
+}
+DEBUG SKIP: Wide Spread 0.24 for NBA Playoffs: Knicks vs. Hawks Total Games O/U 5.5 (NBA Playoffs: Knicks vs. Hawks Total Games O/U 5.5)
+DEBUG RAW MARKET: {
+  "id": "2006980",
+  "question": "NBA Playoffs: Who Will Win Series? - Raptors vs. Cavaliers ",
+  "conditionId": "0x832f4a1c8439fe079fd69dc03249d3bcddfb43e57ea25eefc5978d419ac39d15",
+  "slug": "nba-playoffs-who-will-win-series-raptors-vs-cavaliers",
+  "resolutionSource": "",
+  "endDate": "2026-05-04T00:00:00Z",
+  "liquidity": "44706.10323",
+  "startDate": "2026-04-17T15:59:03.831737Z",
+  "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/nba-playoffs-who-will-win-series-raptors-vs-cavaliers--bBOVjUED2BM.png",
+  "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/nba-playoffs-who-will-win-series-raptors-vs-cavaliers--bBOVjUED2BM.png",
+  "description": "This market will resolve to \u201cRaptors\u201d if the Toronto Raptors win the 2026 NBA Playoffs First Round series between the Toronto Raptors and Cleveland Cavaliers. This market will resolve to \u201cCavs\u201d if the Cleveland Cavaliers win the 2026 NBA Playoffs First Round series between the Toronto Raptors and Cleveland Cavaliers.\n\nIf a partial series is played and not completed by May 31, 2026, 11:59 PM ET, this market will resolve to 50-50.\n\nIf the 2026 NBA Playoffs are cancelled, postponed after May 31, 2026, 11:59 PM ET, or there is otherwise no winner declared within that timeframe, this market will resolve to 50-50.\n\nThe resolution source for this market will be official information from the NBA; however, a consensus of credible reporting may also be used.",
+  "outcomes": "[\"Raptors\", \"Cavs\"]",
+  "outcomePrices": "[\"0.0405\", \"0.9595\"]",
+  "volume": "31605.966785",
+  "active": true,
+  "closed": false,
+  "marketMakerAddress": "",
+  "createdAt": "2026-04-17T15:44:24.847081Z",
+  "updatedAt": "2026-04-22T22:59:50.760658Z",
+  "new": false,
+  "featured": false,
+  "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+  "archived": false,
+  "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+  "restricted": true,
+  "groupItemTitle": "",
+  "groupItemThreshold": "0",
+  "questionID": "0x4091c840bd8ec25c5b98f10324aa1556d9177c3902395d7357b61be280199ac9",
+  "enableOrderBook": true,
+  "orderPriceMinTickSize": 0.001,
+  "orderMinSize": 5,
+  "volumeNum": 31605.966785,
+  "liquidityNum": 44706.10323,
+  "endDateIso": "2026-05-04",
+  "startDateIso": "2026-04-17",
+  "hasReviewedDates": true,
+  "volume24hr": 2828.2479010000006,
+  "volume1wk": 31605.966785,
+  "volume1mo": 31605.966785,
+  "volume1yr": 31605.966785,
+  "clobTokenIds": "[\"22780900520260697820903646759465223369918215236526965085429207102119551276492\", \"42024716621033914806491117545708025368439058934635969161950543428796810213870\"]",
+  "umaBond": "500",
+  "umaReward": "5",
+  "volume24hrClob": 2828.2479010000006,
+  "volume1wkClob": 31605.966785,
+  "volume1moClob": 31605.966785,
+  "volume1yrClob": 31605.966785,
+  "volumeClob": 31605.966785,
+  "liquidityClob": 44706.10323,
+  "makerBaseFee": 1000,
+  "takerBaseFee": 1000,
+  "customLiveness": 0,
+  "acceptingOrders": true,
+  "negRisk": false,
+  "negRiskRequestID": "",
+  "ready": false,
+  "funded": false,
+  "acceptingOrdersTimestamp": "2026-04-17T15:58:00Z",
+  "cyom": false,
+  "competitive": 0.8256682081204055,
+  "pagerDutyNotificationEnabled": false,
+  "approved": true,
+  "rewardsMinSize": 50,
+  "rewardsMaxSpread": 4.5,
+  "spread": 0.015,
+  "oneDayPriceChange": 0.005,
+  "lastTradePrice": 0.047,
+  "bestBid": 0.033,
+  "bestAsk": 0.048,
+  "automaticallyActive": true,
+  "clearBookOnStart": true,
+  "manualActivation": false,
+  "negRiskOther": false,
+  "umaResolutionStatuses": "[]",
+  "pendingDeployment": false,
+  "deploying": false,
+  "deployingTimestamp": "2026-04-17T15:56:47.456167Z",
+  "rfqEnabled": false,
+  "holdingRewardsEnabled": false,
+  "feesEnabled": true,
+  "requiresTranslation": false,
+  "feeType": "sports_fees_v2",
+  "feeSchedule": {
+    "exponent": 1,
+    "rate": 0.03,
+    "takerOnly": true,
+    "rebateRate": 0.25
+  }
+}
+DEBUG SKIP: Low Liq 860.77482 for Magic vs. Pistons (Jalen Suggs: Points O/U 2.5)
+DEBUG SKIP: Low Liq 420.9194 for Magic vs. Pistons (Duncan Robinson: Rebounds O/U 0.5)
+DEBUG SKIP: Wide Spread 0.25 for Magic vs. Pistons (Ausar Thompson: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 404.8981 for Magic vs. Pistons (Ausar Thompson: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 754.3516 for Magic vs. Pistons (Wendell Carter Jr.: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 728.5774 for Magic vs. Pistons (Duncan Robinson: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 33.6817 for Suns vs. Thunder (Luguentz Dort: Points O/U 2.5)
+DEBUG SKIP: Wide Spread 0.44 for Suns vs. Thunder (Mark Williams: Rebounds O/U 2.5)
+DEBUG SKIP: Low Liq 358.7658 for Suns vs. Thunder (Mark Williams: Rebounds O/U 2.5)
+DEBUG SKIP: Wide Spread 0.34 for Suns vs. Thunder (Mark Williams: Assists O/U 0.5)
+DEBUG SKIP: Wide Spread 0.61 for Suns vs. Thunder (Jordan Goodwin: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 115.4991 for Suns vs. Thunder (Jordan Goodwin: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 512.5564 for Suns vs. Thunder (Chet Holmgren: Assists O/U 0.5)
+DEBUG SKIP: Wide Spread 0.31 for Suns vs. Thunder (Isaiah Hartenstein: Assists O/U 0.5)
+DEBUG SKIP: Low Liq 53.3511 for Suns vs. Thunder (Isaiah Hartenstein: Assists O/U 0.5)
+DEBUG SKIP: Wide Spread 0.31 for Suns vs. Thunder (Isaiah Hartenstein: Points O/U 2.5)
+DEBUG SKIP: Low Liq 41.0313 for Suns vs. Thunder (Isaiah Hartenstein: Points O/U 2.5)
+DEBUG SKIP: Wide Spread 0.61 for Suns vs. Thunder (Jordan Goodwin: Rebounds O/U 1.5)
+DEBUG SKIP: Low Liq 116.7495 for Suns vs. Thunder (Jordan Goodwin: Rebounds O/U 1.5)
+DEBUG SKIP: Low Liq 802.2318 for Suns vs. Thunder (Luguentz Dort: Rebounds O/U 0.5)
+DEBUG SKIP: Wide Spread 0.44 for Suns vs. Thunder (Mark Williams: Points O/U 2.5)
+DEBUG SKIP: Low Liq 315.0448 for Suns vs. Thunder (Mark Williams: Points O/U 2.5)
+DEBUG SKIP: Wide Spread 0.60 for Suns vs. Thunder (Jordan Goodwin: Points O/U 1.5)
+DEBUG SKIP: Low Liq 134.896 for Suns vs. Thunder (Jordan Goodwin: Points O/U 1.5)
+DEBUG SKIP: Low Liq 902.8592 for Suns vs. Thunder (Suns vs. Thunder: 1H O/U 111.5)
+DEBUG SKIP: Wide Spread 0.24 for NBA Playoffs: Pistons vs. Magic Total Games O/U 5.5 (NBA Playoffs: Pistons vs. Magic Total Games O/U 5.5)
+Processed batch. Incrementing offset from 0 to 100
+Fetching offset 100...
+No more events returned.
+Found 56 Active Main-Line NBA markets.
+2026-04-22 19:03:56,123 [INFO] Found 28 unique game markets
+2026-04-22 19:04:18,729 [INFO] Price source: live — got 56 books
+2026-04-22 19:04:18 | INFO     | src.data_collection.nba_api_collector:_load_cache:70 | Loaded 16 items from NBA cache
+2026-04-22 19:04:18 | INFO     | src.data_collection.nba_api_collector:__init__:57 | NBA data collector initialized (using nba_api)
+2026-04-22 19:04:18,732 [INFO] Analysing: Rockets (HOU) vs Lakers (LAL)
+2026-04-22 19:04:18,732 [INFO] Analysing: Timberwolves (MIN) vs Nuggets (DEN)
+2026-04-22 19:04:18,732 [INFO] Analysing: Raptors (TOR) vs Cavaliers (CLE)
+2026-04-22 19:04:18,732 [INFO] Analysing: Spurs (SAS) vs Trail Blazers (POR)
+2026-04-22 19:04:18,732 [INFO] Analysing: 76ers (PHI) vs Celtics (BOS)
+2026-04-22 19:04:18,732 [INFO] Analysing: Who Will Win Series? - 76ers (PHI) vs Celtics (BOS)
+2026-04-22 19:04:18,733 [INFO] Analysing: Who Will Win Series? - Lakers (LAL) vs Rockets (HOU)
+2026-04-22 19:04:18,733 [INFO] Analysing: Who Will Win Series? - Timberwolves (MIN) vs Nuggets (DEN)
+2026-04-22 19:04:18,733 [INFO] Analysing: Who Will Win Series? - Knicks (NYK) vs Hawks (ATL)
+2026-04-22 19:04:18,733 [INFO] Analysing: Who Will Win Series? - Spurs (SAS) vs Trail Blazers (POR)
+2026-04-22 19:04:18,733 [INFO] Analysing: Who Will Win Series? - Raptors (TOR) vs Cavaliers (CLE)
+2026-04-22 19:04:18,733 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,733 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,733 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,734 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,734 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,734 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,734 [INFO] Analysing: Magic (ORL) vs Pistons (DET)
+2026-04-22 19:04:18,734 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,734 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,734 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Who Will Win Series? - Pistons (DET) vs Magic (ORL)
+2026-04-22 19:04:18,735 [INFO] Analysing: Suns (PHX) vs Thunder (OKC)
+2026-04-22 19:04:18,735 [INFO] Analysing: Who Will Win Series? - Suns (PHX) vs Thunder (OKC)
+
+================================================================================
+  +EV BET FINDER — 2026-04-22 19:04
+  Min edge: 5%  |  Markets scanned: 28
+================================================================================
+
+  No +EV bets found above threshold.
+
+  All model estimates (prices: live):
+
+    ▲ Spurs vs Trail Blazers                    Spurs                      Model: 88.5%  Edge: +38.5%
+    ▼ Spurs vs Trail Blazers                    Trail Blazers              Model: 11.5%  Edge: -38.5%
+    ▲ Who Will Win Series? - Spurs vs Trail Blazers  Who Will Win Series? - Spurs  Model: 88.5%  Edge: +38.5%
+    ▼ Who Will Win Series? - Spurs vs Trail Blazers  Trail Blazers              Model: 11.5%  Edge: -38.5%
+    ▲ Who Will Win Series? - Pistons vs Magic   Who Will Win Series? - Pistons  Model: 81.5%  Edge: +31.5%
+    ▼ Who Will Win Series? - Pistons vs Magic   Magic                      Model: 18.5%  Edge: -31.5%
+    ▼ Timberwolves vs Nuggets                   Timberwolves               Model: 23.8%  Edge: -26.2%
+    ▲ Timberwolves vs Nuggets                   Nuggets                    Model: 76.2%  Edge: +26.2%
+    ▼ Who Will Win Series? - Timberwolves vs Nuggets  Who Will Win Series? - Timberwolves  Model: 23.8%  Edge: -26.2%
+    ▲ Who Will Win Series? - Timberwolves vs Nuggets  Nuggets                    Model: 76.2%  Edge: +26.2%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Suns vs Thunder                           Suns                       Model: 24.2%  Edge: -25.8%
+    ▲ Suns vs Thunder                           Thunder                    Model: 75.8%  Edge: +25.8%
+    ▼ Who Will Win Series? - Suns vs Thunder    Who Will Win Series? - Suns  Model: 24.2%  Edge: -25.8%
+    ▲ Who Will Win Series? - Suns vs Thunder    Thunder                    Model: 75.8%  Edge: +25.8%
+    ▲ Who Will Win Series? - Knicks vs Hawks    Who Will Win Series? - Knicks  Model: 72.1%  Edge: +22.1%
+    ▼ Who Will Win Series? - Knicks vs Hawks    Hawks                      Model: 27.9%  Edge: -22.1%
+    ▲ Rockets vs Lakers                         Rockets                    Model: 66.1%  Edge: +16.2%
+    ▼ Rockets vs Lakers                         Lakers                     Model: 33.9%  Edge: -16.2%
+    ▼ Raptors vs Cavaliers                      Raptors                    Model: 37.1%  Edge: -12.9%
+    ▲ Raptors vs Cavaliers                      Cavaliers                  Model: 62.9%  Edge: +12.9%
+    ▼ Who Will Win Series? - Raptors vs Cavaliers  Who Will Win Series? - Raptors  Model: 37.1%  Edge: -12.9%
+    ▲ Who Will Win Series? - Raptors vs Cavaliers  Cavaliers                  Model: 62.9%  Edge: +12.9%
+    ▲ Who Will Win Series? - Lakers vs Rockets  Who Will Win Series? - Lakers  Model: 56.5%  Edge: +6.5%
+    ▼ Who Will Win Series? - Lakers vs Rockets  Rockets                    Model: 43.5%  Edge: -6.5%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ Magic vs Pistons                          Magic                      Model: 43.7%  Edge: -6.3%
+    ▲ Magic vs Pistons                          Pistons                    Model: 56.3%  Edge: +6.3%
+    ▼ 76ers vs Celtics                          76ers                      Model: 48.5%  Edge: -1.5%
+    ▲ 76ers vs Celtics                          Celtics                    Model: 51.5%  Edge: +1.5%
+    ▼ Who Will Win Series? - 76ers vs Celtics   Who Will Win Series? - 76ers  Model: 48.5%  Edge: -1.5%
+    ▲ Who Will Win Series? - 76ers vs Celtics   Celtics                    Model: 51.5%  Edge: +1.5%
+================================================================================
+  Books: 56 live (CLOB orderbook) | 0 fallback (0.50)
+

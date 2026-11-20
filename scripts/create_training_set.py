@@ -109,6 +109,25 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
             # Filter Liquidity (Strict)
             # Only keep tight spreads (< 5 cents)
             full_df['spread'] = full_df['ask_price_1'] - full_df['bid_price_1']
+            
+            # --- CRITICAL FIX: Normalize Prices (Handle Cents vs Dollars) ---
+            # Some sources (Kalshi) store 50c as 50.0. Polymarket stores 50c as 0.50.
+            # Normalize anything > 1.1 to be / 100
+            for col in ['micro_price', 'vamp', 'ask_price_1', 'bid_price_1']:
+                mask = full_df[col] > 1.05
+                full_df.loc[mask, col] = full_df.loc[mask, col] / 100.0
+                
+            # Recalculate spread after normalization
+            full_df['spread'] = full_df['ask_price_1'] - full_df['bid_price_1']
+            
+            # --- ZOMBIE FILTER ---
+            # Exclude resolved/dead markets (Price < 0.02 or > 0.98)
+            # These "1 cent" markets pollute the model with noise.
+            price_filter = (full_df['micro_price'] > 0.02) & (full_df['micro_price'] < 0.98)
+            zombie_drops = len(full_df) - len(full_df[price_filter])
+            full_df = full_df[price_filter]
+            logger.info(f"Zombie Filter: Dropped {zombie_drops} rows (Price < 0.02 or > 0.98)")
+            
             initial_len = len(full_df)
             full_df = full_df[full_df['spread'] <= 0.06] # 6 cents tolerance
             logger.info(f"Liquidity Filter: Kept {len(full_df)}/{initial_len} rows (Spread <= $0.06)")
@@ -256,7 +275,16 @@ def get_v2_training_set(outfile: str = 'final_training_set_v2.csv'):
             # Drop rows where ANY target is NaN (to ensure fair comparison on same dataset subset? 
             # Or just drop if 60s is missing?
             # If we drop all, we lose the last 5 mins of data. That's fine for training.)
-            final_df = final_df.dropna(subset=['target_return_60s', 'target_return_180s', 'target_return_300s'])
+            # Drop rows where 60s target is NaN. 
+            # We can tolerate missing long-horizon targets for training short-term models.
+            pre_drop_len = len(final_df)
+            final_df = final_df.dropna(subset=['target_return_60s'])
+            logger.info(f"Target Filter: Dropped {pre_drop_len - len(final_df)} rows missing 60s target.")
+            
+            # Warn if 300s target is missing often
+            missing_300s = final_df['target_return_300s'].isna().sum()
+            if missing_300s > 0:
+                logger.warning(f"{missing_300s} rows missing 300s target (kept valid 60s rows).")
 
             # Export
             final_df.to_csv(outfile, index=False)

@@ -1,16 +1,87 @@
 version: '3.8'
 
 services:
+  # 1. Polymarket Collector (Data Ingress)
   collector:
     build: .
-    container_name: nba_markets_collector
+    container_name: nba_collector
     restart: unless-stopped
+    command: python scripts/run_targeted_collector.py
     environment:
-      # Mac/Windows: host.docker.internal allows access to host localhost port
       - QUESTDB_HOST=host.docker.internal
       - QUESTDB_PORT=8812
       - COLLECTION_DURATION_SECONDS=-1
+      - LOG_LEVEL=DEBUG
     volumes:
       - ./logs:/app/logs
+      - ./.env:/app/.env
+      # Mount market definitions
+      - ./nba_game_markets.json:/app/nba_game_markets.json
+      - ./polymarket_nba_markets_100639.json:/app/polymarket_nba_markets_100639.json
+      - ./scripts:/app/scripts # CRITICAL: Enable live code updates
 
-# No volumes needed since we don't manage DB state
+  # 2. Kalshi Collector (Data Ingress)
+  kalshi:
+    build: .
+    container_name: nba_kalshi
+    restart: unless-stopped
+    command: python scripts/run_kalshi_collector.py
+    environment:
+      - QUESTDB_HOST=host.docker.internal
+      - QUESTDB_PORT=8812
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+      - ./nba_game_markets.json:/app/nba_game_markets.json
+      - ./scripts:/app/scripts # CRITICAL: Enable live code updates
+
+  # 3. Paper Trading Bot (Logic Core)
+  bot:
+    build: .
+    container_name: nba_bot
+    restart: unless-stopped
+    command: python scripts/run_paper_bot.py
+    environment:
+      - QUESTDB_HOST=host.docker.internal
+      - QUESTDB_PORT=8812
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      # Mount data to persist trade history across rebuilds
+      - ./data:/app/data 
+      - ./scripts:/app/scripts # CRITICAL: Mount scripts for live updates
+      - ./.env:/app/.env
+      - ./xgb_model.json:/app/xgb_model.json
+      - ./nba_game_markets.json:/app/nba_game_markets.json
+      - ./polymarket_nba_markets_100639.json:/app/polymarket_nba_markets_100639.json
+
+  # 4. Streamlit Dashboard (Monitoring)
+  dashboard:
+    build: .
+    container_name: nba_dashboard
+    restart: unless-stopped
+    command: streamlit run scripts/dashboard.py --server.port 8501 --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - QUESTDB_HOST=host.docker.internal
+      - QUESTDB_PORT=8812
+    volumes:
+       - ./logs:/app/logs
+       - ./data:/app/data
+       - ./scripts:/app/scripts
+       - ./.env:/app/.env
+
+  # 5. Database (Time Series)
+  questdb:
+    image: questdb/questdb:latest
+    container_name: questdb
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "8812:8812"
+      - "9009:9009"
+    volumes:
+      - ./questdb_data:/var/lib/questdb
+

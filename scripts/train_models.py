@@ -178,6 +178,16 @@ def main():
         X_train, X_test = features.iloc[:split_idx], features.iloc[split_idx:]
         y_train, y_test = y.iloc[:split_idx], y.iloc[split_idx:]
         
+        # SANITIZE TARGETS (Fix for Jan 26 XGBoost Error)
+        # Replace Inf with NaN, then fill NaN with 0.0 (Neutral)
+        y_train = y_train.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        y_test = y_test.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        
+        logger.info(f"Train Shape: {X_train.shape}, Test Shape: {X_test.shape}")
+        if X_train.empty:
+            logger.error("X_train is empty! Skipping this horizon.")
+            continue
+        
         # XGBoost (Best Model)
         preds_xgb, xgb_model = train_xgboost(X_train, y_train, X_test, y_test)
         metrics = calculate_metrics(y_test, preds_xgb)

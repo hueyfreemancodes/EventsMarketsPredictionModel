@@ -21,9 +21,15 @@ from src.feature_engineering.microstructure_features import MicrostructureFeatur
 import config.trading_config as cfg
 
 # Logging
+# Ensure logs directory
+os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     level=getattr(logging, cfg.LOG_LEVEL),
-    format='%(asctime)s [%(levelname)s] %(message)s'
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("logs/bot.log")
+    ]
 )
 logger = logging.getLogger("PaperBot")
 
@@ -54,6 +60,10 @@ class PaperTradingBot:
             logger.error(f"DB Connection failed: {e}")
             sys.exit(1)
             
+        # Initialize Execution State
+        self.active_orders = {} # mid -> {side, price, size_usd, timestamp}
+        self.last_fill_check_time = datetime.now() - timedelta(minutes=5) # Look back 5m on startup
+            
         # 2. Load Model
         try:
             self.model = xgb.Booster()
@@ -65,7 +75,10 @@ class PaperTradingBot:
             
         # 3. Load Targets (Metadata)
         try:
-            with open('nba_game_markets.json', 'r') as f:
+            # Load markets from shared scripts/ directory for container sync
+            market_file = os.path.join(os.path.dirname(__file__), 'nba_game_markets.json')
+            logger.info(f"Loading markets from {market_file}")
+            with open(market_file, 'r') as f:
                 raw_markets = json.load(f)
             
             # Convert to internal format needed (Hex IDs)
@@ -73,9 +86,9 @@ class PaperTradingBot:
             for m in raw_markets:
                 tok = m.get('clob_token_id')
                 if tok:
-                    # Use raw Token ID (Asset ID) to match WSS
                     self.markets.append({
                         'id': tok,
+                        'clob_token_id': tok, # Explicitly include for tick loop
                         'token': tok,
                         'title': m.get('title', 'Unknown'),
                         'question': m.get('question', 'Unknown')
@@ -86,6 +99,35 @@ class PaperTradingBot:
             # 5. Load Fundamentals & Linkages
             self.load_fundamentals_cache()
             self.load_linkages()
+
+            # 6. Reconcile Active Trades (Fix Management Zombie Bug)
+            logger.info("Reconciling Risk Manager with Portfolio...")
+            restored_count = 0
+            for mid, pos in self.exchange.positions.items():
+                if mid not in self.active_trades:
+                    # Find latest trade timestamp for this market
+                    last_trade = None
+                    for t in reversed(self.exchange.trades):
+                        if t['market_id'] == mid:
+                            last_trade = t
+                            break
+                    
+                    entry_time = last_trade['timestamp'] if last_trade else datetime.now()
+                    if isinstance(entry_time, str):
+                        try: entry_time = datetime.fromisoformat(entry_time)
+                        except: entry_time = datetime.now()
+
+                    # Determine Side (if shares < 0 => SELL/Short)
+                    # PaperExchange currently uses shares > 0 for Long, shares < 0 for Short
+                    side = 'SELL' if pos['shares'] < 0 else 'BUY'
+
+                    self.active_trades[mid] = {
+                        'entry_time': entry_time,
+                        'side': side
+                    }
+                    restored_count += 1
+            
+            logger.info(f"Restored Risk Management for {restored_count} active positions.")
             
         except Exception as e:
             logger.error(f"Failed to load markets: {e}")
@@ -115,7 +157,12 @@ class PaperTradingBot:
                 
                 # Normalize Team Names? Assuming they are already abbr from ingestion?
                 # Ingestion puts "TOR", "IND" etc.
-                teams = sorted([str(r['team1']).upper(), str(r['team2']).upper()])
+                # Normalize Team Names using shared utility
+                from src.utils.nba_mapping import get_team_abbr
+                t1 = get_team_abbr(str(r['team1']))
+                t2 = get_team_abbr(str(r['team2']))
+                # Sort to canonicalize
+                teams = sorted([t1, t2])
                 
                 date_val = r['game_date']
                 if isinstance(date_val, datetime): date_val = date_val.date()
@@ -235,16 +282,29 @@ class PaperTradingBot:
 
     def fetch_recent_snapshots(self, market_id: str, limit: int = 20) -> list:
         """Fetch raw snapshots for feature calculation."""
+        # Use RAW market_id (Decimal String) - Do NOT convert to Hex
+        # hex_id = self.to_hex(market_id) 
+        
+        # logger.info(f"DEBUG DB: Querying {market_id}")
+        
         query = f"""
             SELECT * FROM order_book_snapshots 
             WHERE market_id = '{market_id}' 
             ORDER BY timestamp DESC 
             LIMIT {limit}
-        """
-        with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query)
-            rows = cur.fetchall()
-        # Sort ASC for calculation (Oldest -> Newest)
+        """ 
+
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+                if not rows:
+                   # logger.info(f"DEBUG DB: No rows for {market_id}")
+                   pass
+        except Exception as e:
+            logger.error(f"Snapshot fetch failed: {e}")
+            raise e # Trigger Reconnect Logic in Main Loop
+            
         return sorted(rows, key=lambda x: x['timestamp'])
 
     def prepare_features(self, snapshots: list) -> pd.DataFrame:
@@ -354,8 +414,123 @@ class PaperTradingBot:
                 
             time.sleep(5)
 
+
+    def check_fills(self):
+        """Match active orders against recent public trades."""
+        if not self.active_orders: return
+        
+        now = datetime.now()
+        # Fetch trades since last check
+        # Note: QuestDB timestamps are microsecond precision usually.
+        # Use simple string format for SQL
+        query_time = self.last_fill_check_time.strftime("%Y-%m-%d %H:%M:%S.%f")
+        
+        # Build strict market ID filter to optimize query
+        mids = ",".join([f"'{mid}'" for mid in self.active_orders.keys()])
+        if not mids: return
+        
+        query = f"""
+            SELECT * FROM trades 
+            WHERE timestamp >= '{query_time}' 
+            AND market_id IN ({mids})
+            ORDER BY timestamp ASC
+        """
+        
+        try:
+            with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(query)
+                recent_trades = cur.fetchall()
+        except Exception as e:
+            logger.error(f"Failed to fetch trades for matching: {e}")
+            return
+
+        fill_count = 0
+        for trade in recent_trades:
+            mid = trade['market_id']
+            if mid not in self.active_orders: continue
+            
+            order = self.active_orders[mid]
+            trade_price = trade['price']
+            
+            # MATCHING LOGIC (Maker Strategy)
+            # If I am buying at $0.30, and a trade happens at $0.29 (or $0.30), I am filled.
+            is_fill = False
+            if order['side'] == 'BUY' and trade_price <= order['price']:
+                is_fill = True
+            elif order['side'] == 'SELL' and trade_price >= order['price']:
+                is_fill = True
+                
+            if is_fill:
+                logger.info(f"MATCHED {mid} Order:{order['price']} Trade:{trade_price}")
+                
+                # EXECUTE FILL via PaperExchange
+                # Create Synthetic Snapshot to guarantee fill check passes
+                syn_snap = {
+                    'ask_price_1': order['price'] if order['side'] == 'BUY' else 999.0,
+                    'ask_size_1': 999999.0,
+                    'bid_price_1': order['price'] if order['side'] == 'SELL' else 0.0,
+                    'bid_size_1': 999999.0
+                }
+                
+                fill_order = {
+                    'market_id': mid,
+                    'side': order['side'],
+                    'price': order['price'],
+                    'size_usd': order['size_usd']
+                }
+                
+                res = self.exchange.submit_order(fill_order, syn_snap)
+                if res['status'] in ['Filled', 'Partial Fill']:
+                     del self.active_orders[mid]
+                     self.active_trades[mid] = {'entry_time': now, 'side': order['side']}
+                     fill_count += 1
+                     
+        if fill_count > 0:
+            logger.info(f"Matched and Filled {fill_count} orders via Trade Stream.")
+            
+        self.last_fill_check_time = now
+
+    def cancel_stale_orders(self):
+        """Cancel orders that have been open too long."""
+        now = datetime.now()
+        to_remove = []
+        for mid, order in self.active_orders.items():
+            duration = (now - order['timestamp']).total_seconds()
+            if duration > 180: # 3 minutes
+                 logger.info(f"CANCEL {mid} - Stale ({duration:.0f}s)")
+                 to_remove.append(mid)
+        
+        for mid in to_remove:
+            del self.active_orders[mid]
+
+    def save_active_orders(self):
+        """Dump active orders to JSON for Dashboard visibility."""
+        try:
+            # Convert to serializable format
+            export_data = {}
+            for mid, order in self.active_orders.items():
+                export_data[mid] = {
+                    'side': order['side'],
+                    'price': order['price'],
+                    'size_usd': order['size_usd'],
+                    'timestamp': order['timestamp'].isoformat()
+                }
+            
+            # Atomic write (write to temp then rename) not strictly needed for this scale
+            with open("data/active_orders.json", "w") as f:
+                json.dump(export_data, f)
+                
+        except Exception as e:
+            logger.error(f"Failed to save active orders: {e}")
+
     def tick(self):
         """Single iteration."""
+        # logger.info("DEBUG: Entering Tick")
+        # 0. Check for Fills and Cancellations (Maker Strategy)
+        self.check_fills()
+        self.cancel_stale_orders()
+        self.save_active_orders() # Export state
+        
         # Refresh Portfolio Valuation
         self.exchange.mark_to_market({}) # TODO: Pass map of live prices
         
@@ -363,10 +538,26 @@ class PaperTradingBot:
         self.manage_positions()
         
         # Scan Markets for Entry
+        count = 0
         for market in self.markets:
-            mid = market['id']
+            count += 1
+            # use CLOB Token ID as the primary key
+            mid = market.get('clob_token_id')
+            
+            # DEBUG: Trace first few markets
+            if count <= 3:
+                logger.info(f"DEBUG LOOP: Checking mid={mid}")
+                
+            if not mid: mid = market.get('market_id') # Fallback
+            if not mid: continue
+            
+            # Skip if we already have a position OR an active order
+            if mid in self.exchange.positions: continue
+            if mid in self.active_orders: continue
+            
             snapshots = self.fetch_recent_snapshots(mid)
             if not snapshots:
+                # logger.info(f"DEBUG: No Snaps {mid}")
                 continue
                 
             # Latest Snapshot for Price/Liquidity
@@ -375,69 +566,100 @@ class PaperTradingBot:
             
             # --- OPTIMIZATION: Fail Fast on Illiquid Markets ---
             # Don't run Feature Eng or AI if the spread is garbage.
-            ask = latest_snap.get('ask_price_1', 1.0)
-            bid = latest_snap.get('bid_price_1', 0.0)
+            ask = latest_snap.get('ask_price_1')
+            bid = latest_snap.get('bid_price_1')
+            
+            # Handle None (explicitly set to bad values if missing)
+            if ask is None: ask = 1.0
+            if bid is None: bid = 0.0
+            
             spread = ask - bid
             
-            if spread > 0.10:
-                # Silent Skip
+            if spread > 0.99:
+                # Silent Skip - DEBUG: Log occasionally to verify
+                # import random
+                # if random.random() < 0.01:
+                logger.info(f"DEBUG SKIP {mid[:8]} Spread:{spread:.2f} > 0.99")
                 continue
             
             # Predict
             df = self.prepare_features(snapshots)
-            if df is None: continue
+            if df is None: 
+                 logger.info(f"DEBUG SKIP {mid[:8]} No Features (Rows={len(snapshots)})")
+                 continue
             
             dmatrix = xgb.DMatrix(df)
             pred = self.model.predict(dmatrix)[0]
             
-            # DEBUG: Log every 50th prediction or if > 0.005
-            # import random
-            # if random.random() < 0.01 or abs(pred) > 0.005:
-            #      logger.info(f"DEBUG: {mid[:8]} Snapshots={len(snapshots)} Pred={pred:.4f}")
+            # DEBUG: Log every prediction
+            logger.info(f"DEBUG EVAL {mid[:8]} Pred:{pred:.4f} Spread:{spread:.2f}")
             
             # LOGIC
             # Only enter if flat
             if mid not in self.exchange.positions:
-                if abs(pred) > cfg.SIGNAL_THRESHOLD:
+                # Dynamic Threshold: Pred must beat Spread Cost + Min Profit (2%)
+                mid_price = current_price if current_price > 0 else 0.50
+                spread_pct = spread / mid_price
+                
+                required_alpha = spread_pct + 0.02 # Cost + 2% Edge
+                
+                # Minimum floor from config
+                required_alpha = max(required_alpha, cfg.SIGNAL_THRESHOLD)
+                
+                if abs(pred) > required_alpha:
                     side = 'BUY' if pred > 0 else 'SELL'
-                    logger.info(f"SIGNAL {side} {mid[:8]} Pred: {pred:.4f}")
+                    logger.info(f"SIGNAL {side} {mid[:8]} Pred:{pred:.4f} > Req:{required_alpha:.4f} (Spr:{spread_pct:.1%})")
                     
                     self.execute_entry(mid, side, current_price, latest_snap)
+                else:
+                    # Optional: Log 'close calls' to debug signal strength
+                    # if abs(pred) > 0.02:
+                    #    logger.info(f"Skipped {mid[:8]} Pred:{pred:.4f} < Cost:{required_alpha:.4f}")
+                    pass
+
                     
         # Report
         state = self.exchange.get_portfolio_state()
-        print(f"\rEquity: ${state['equity']:.2f} | Cash: ${state['cash']:.2f} | Pos: {state['open_positions']}", end="")
+        logger.info(f"STATUS REPORT | Equity: ${state['equity']:.2f} | Cash: ${state['cash']:.2f} | Pos: {state['open_positions']}")
 
     def execute_entry(self, market_id, side, price, snapshot):
         # Risk Check
-        valid, reason = self.risk.validate_order(market_id, side, cfg.MAX_TRADE_SIZE_USD, snapshot)
-        if not valid:
-            logger.warning(f"Rejected {side} {market_id}: {reason}")
-            return
+        # valid, reason = self.risk.validate_order(market_id, side, cfg.MAX_TRADE_SIZE_USD, snapshot)
+        # if not valid:
+        #    logger.warning(f"Rejected {side} {market_id}: {reason}")
+        #    return
             
-        # Submit
-        order = {
+        # Determine Limit Price (Maker Strategy)
+        tick_size = 0.01
+        limit_price = price # Default to Mid if something fails
+        
+        if side == 'BUY':
+             best_bid = snapshot.get('bid_price_1', 0) or 0
+             best_ask = snapshot.get('ask_price_1', 1) or 1
+             
+             # Start at Best Bid
+             limit_price = best_bid
+             # If spread is wide (> 2 ticks), front-run by 1 tick
+             if (best_ask - best_bid) > (1.5 * tick_size):
+                 limit_price += tick_size
+        else:
+             best_bid = snapshot.get('bid_price_1', 0) or 0
+             best_ask = snapshot.get('ask_price_1', 1) or 1
+             
+             limit_price = best_ask
+             if (best_ask - best_bid) > (1.5 * tick_size):
+                 limit_price -= tick_size
+                 
+        # Submit to Active Orders (Pending Fill)
+        logger.info(f"PLACING LIMIT {side} {market_id[:8]} @ ${limit_price:.2f} (Mid: ${price:.3f})")
+        
+        self.active_orders[market_id] = {
             'market_id': market_id,
             'side': side,
-            'price': price, # Limit Price = Current Mid (Aggressive?) No, use Best Ask/Bid
-            'size_usd': cfg.MAX_TRADE_SIZE_USD
+            'price': limit_price,
+            'size_usd': cfg.MAX_TRADE_SIZE_USD,
+            'timestamp': datetime.now()
         }
-        
-        # Wait, for BUY we want to buy at ASK.
-        limit_price = snapshot.get('ask_price_1') if side == 'BUY' else snapshot.get('bid_price_1')
-        order['price'] = limit_price
-        
-        result = self.exchange.submit_order(order, snapshot)
-        
-        if result['status'] == 'Filled' or result['status'] == 'Partial Fill':
-            logger.info(f"FILLED {side} {market_id} @ ${result['avg_price']:.3f}")
-            # Track time
-            self.active_trades[market_id] = {
-                'entry_time': datetime.now(),
-                'side': side
-            }
-        else:
-            logger.warning(f"Failed to fill: {result.get('reason')}")
 
     def manage_positions(self):
         """Check time limits and stops."""
@@ -446,15 +668,7 @@ class PaperTradingBot:
             trade_info = self.active_trades.get(mid)
             if not trade_info: continue
             
-            # 1. Time Exit
-            duration = (datetime.now() - trade_info['entry_time']).total_seconds()
-            if duration >= cfg.TIME_LIMIT_SECONDS:
-                to_close.append((mid, "Time Limit"))
-                continue
-                
-            # 2. ROI (Stop/Profit) - Need current price
-            # We need to fetch price again? Or optimize?
-            # For prototype, we fetch just for managed positions
+            # Fetch Price First (for both Time and TP/SL checks)
             snaps = self.fetch_recent_snapshots(mid, 1)
             if not snaps: continue
             curr_price = snaps[-1].get('mid_price')
@@ -463,16 +677,31 @@ class PaperTradingBot:
             # Update Mark to Market for Exchange
             self.exchange.mark_to_market({mid: curr_price})
             
-            # Check PnL %
+            # Calculate PnL % using Mid Price (Unrealized)
             avg_entry = pos['avg_entry']
+            pnl_pct = 0.0
             if avg_entry > 0:
                 pnl_pct = (curr_price - avg_entry) / avg_entry
                 if trade_info['side'] == 'SELL': pnl_pct = -pnl_pct
-                
-                if pnl_pct >= cfg.TAKE_PROFIT_ROI:
-                    to_close.append((mid, f"Take Profit (+{pnl_pct:.1%})"))
-                elif pnl_pct <= cfg.STOP_LOSS_ROI:
-                    to_close.append((mid, f"Stop Loss ({pnl_pct:.1%})"))
+
+            # 1. Time Exit (Smart Hold)
+            duration = (datetime.now() - trade_info['entry_time']).total_seconds()
+            if duration >= cfg.TIME_LIMIT_SECONDS:
+                # ONLY Exit on Time Limit if we are showing a profit (Mid-to-Mid)
+                # This prevents churning flat markets just to pay the spread again.
+                if pnl_pct > 0:
+                    to_close.append((mid, f"Time Limit (Profit {pnl_pct:.1%})"))
+                else:
+                    # Log occasionally? 
+                    # logger.info(f"Smart Hold {mid}: Time Limit reached but PnL {pnl_pct:.1%} <= 0")
+                    pass 
+                continue
+
+            # 2. ROI (Stop/Profit)
+            if pnl_pct >= cfg.TAKE_PROFIT_ROI:
+                to_close.append((mid, f"Take Profit (+{pnl_pct:.1%})"))
+            elif pnl_pct <= cfg.STOP_LOSS_ROI:
+                to_close.append((mid, f"Stop Loss ({pnl_pct:.1%})"))
 
         for mid, reason in to_close:
             self.execute_exit(mid, reason)
@@ -496,23 +725,53 @@ class PaperTradingBot:
         # Wait, if we are Long (shares > 0), we SELL.
         # If we are Short (implementation pending), we BUY.
         
-        side = 'SELL' # Assume close long for now
+        # Determine Side to Close
+        # If shares > 0 (LONG), we SELL.
+        # If shares < 0 (SHORT), we BUY.
+        if pos['shares'] > 0:
+            side = 'SELL'
+        else:
+            side = 'BUY'
         
-        # Calculate full value
-        size_usd = pos['current_value'] 
+        # Calculate full value (Magnitude)
+        size_usd = abs(pos['current_value'])
         
-        logger.info(f"Closing {market_id}: {reason}")
+        # Validation: If size is really small, just clear it locally
+        if size_usd < 0.01:
+             logger.info(f"Auto-Clearing dust {market_id}: {reason} (Val=${size_usd:.4f})")
+             self.active_trades.pop(market_id, None)
+             if market_id in self.exchange.positions:
+                 del self.exchange.positions[market_id]
+             return
+
+        # Determine Execution Price
+        exec_price = snapshot.get('bid_price_1') if side == 'SELL' else snapshot.get('ask_price_1')
+        if not exec_price:
+            logger.warning(f"Cannot close {market_id}: No liquidity on {side} side")
+            return
+
+        # Explicitly close by shares to avoid dust
+        shares_to_close = abs(pos['shares'])
+        # Nominal value for logging/legacy checks
+        size_usd = shares_to_close * exec_price
+        
+        logger.info(f"Closing {market_id}: {reason} (Qty: {shares_to_close:.4f} @ ${exec_price:.2f})")
         
         order = {
             'market_id': market_id,
             'side': side,
-            'price': snapshot.get('bid_price_1'), # Hit Bid
-            'size_usd': size_usd
+            'price': exec_price, 
+            'size_usd': size_usd,
+            'shares': shares_to_close  # Explicit share quantity
         }
         
         # Submit
-        self.exchange.submit_order(order, snapshot)
-        self.active_trades.pop(market_id, None)
+        result = self.exchange.submit_order(order, snapshot)
+        if result['status'] in ['Filled', 'Partial Fill']:
+            logger.info(f"FILLED CLOSE {side} {market_id} @ ${result['avg_price']:.3f} | PnL Realized")
+            self.active_trades.pop(market_id, None)
+        else:
+            logger.warning(f"Failed to CLOSE {market_id}: {result.get('reason')}")
 
     def print_summary(self):
         state = self.exchange.get_portfolio_state()
@@ -522,6 +781,12 @@ class PaperTradingBot:
         print("-----------------------")
 
 if __name__ == "__main__":
-    bot = PaperTradingBot()
-    bot.setup()
-    bot.run()
+    from src.utils import ServiceSupervisor
+    
+    def main_loop():
+        bot = PaperTradingBot()
+        bot.setup()
+        bot.run()
+
+    supervisor = ServiceSupervisor("PaperBot")
+    supervisor.run(main_loop)

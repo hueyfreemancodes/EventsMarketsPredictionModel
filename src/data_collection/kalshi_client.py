@@ -271,6 +271,10 @@ class KalshiClient:
         import json
         
         filtered_markets = []
+        if not self.client:
+            logger.warning("Cannot discover by event: Authenticated client not initialized.")
+            return []
+            
         api_client = self.client.api_client
         host = self.client.configuration.host
         

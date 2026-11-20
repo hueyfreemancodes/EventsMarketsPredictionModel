@@ -136,4 +136,10 @@ async def main():
         logger.info("Stopped by user.")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    from src.utils import ServiceSupervisor
+    
+    def run_collector():
+        asyncio.run(main())
+
+    supervisor = ServiceSupervisor("KalshiCollector")
+    supervisor.run(run_collector)

@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Callable, Any
 from collections import deque
+import aiohttp
 
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
@@ -88,6 +89,7 @@ class PolymarketClient:
         }
         
         self.subscribed_markets = set()
+        self.last_message_time = time.time() # Watchdog timestamp
         
         # Dependency Check
         if self.mode == "websocket" and not WEBSOCKETS_AVAILABLE:
@@ -130,9 +132,10 @@ class PolymarketClient:
             
             self.websocket = await websockets.connect(
                 ws_url,
-                # Use default ping behavior (20s interval, 20s timeout)
-                # ping_interval=20, 
-                # ping_timeout=20
+                user_agent_header="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                ping_interval=None, # Disable client-side pings, rely on server PINGs
+                max_size=None, # Unlimited message size
+                ping_timeout=30 
             )
             self.connected = True
             self.reconnect_attempts = 0
@@ -237,6 +240,10 @@ class PolymarketClient:
             asset_id = message.get('asset_id') or message.get('token_id') or message.get('market')
             condition_id = message.get('condition_id') or message.get('market_id')
             
+            # DEBUG: Trace ID Drift
+            if asset_id:
+                logger.debug(f"DEBUG WSS RAW: asset_id={asset_id} token_id={message.get('token_id')} market={message.get('market')}")
+
             if not asset_id and not condition_id:
                 return None
             
@@ -250,8 +257,35 @@ class PolymarketClient:
             
             # Handle snapshot (full order book)
             if msg_type in ['snapshot', 'l2snapshot', 'book']:
-                bids = message.get('bids', [])
-                asks = message.get('asks', [])
+                raw_bids = message.get('bids', [])
+                raw_asks = message.get('asks', [])
+
+                # Normalization helper
+                def normalize(items):
+                     parsed = []
+                     for item in items:
+                         if isinstance(item, dict):
+                             p = float(item.get('price', 0))
+                             s = float(item.get('size', 0))
+                         elif isinstance(item, list):
+                             p = float(item[0])
+                             s = float(item[1])
+                         else: continue
+                         parsed.append({'price': p, 'size': s})
+                     return parsed
+
+                # Parse & Sort
+                # Bids: Descending (Highest Price is Best)
+                bids_parsed = normalize(raw_bids)
+                bids_parsed.sort(key=lambda x: x['price'], reverse=True)
+                
+                # Asks: Ascending (Lowest Price is Best)
+                asks_parsed = normalize(raw_asks)
+                asks_parsed.sort(key=lambda x: x['price'])
+                
+                # Re-map to list-of-dicts for get_level compatibility (or just use parsed)
+                bids = bids_parsed
+                asks = asks_parsed
                 
                 # Helper to extract price/size from bid/ask item
                 def get_level(items, index):
@@ -405,7 +439,8 @@ class PolymarketClient:
             return None
     
     async def _handle_message(self, message: str):
-        """Handle incoming WebSocket message"""
+        """Parse WebSocket message"""
+        self.last_message_time = time.time() # Reset Watchdog
         try:
             data = json.loads(message)
             self.stats['messages_received'] += 1
@@ -506,7 +541,7 @@ class PolymarketClient:
                     continue
                 except Exception as e:
                     # Check if connection closed
-                    if not self.websocket or self.websocket.closed:
+                    if not self.websocket or getattr(self.websocket, 'closed', True):
                         raise websockets.exceptions.ConnectionClosed(1006, "Closed loop")
                     logger.error(f"Error receiving message: {e}")
                     await asyncio.sleep(1)
@@ -555,15 +590,96 @@ class PolymarketClient:
         
         return False
     
-    async def start(self, market_ids: List[str] = None):
-        """
-        Start client (REST or WebSocket mode)
-        
-        Args:
-            market_ids: List of market IDs. If None, attempts to discover sports markets
-        """
         if not self.enabled:
             logger.error("Client not enabled")
+            return
+
+        if self.mode == "websocket":
+            await self.connect()
+            if market_ids:
+                # Add check to ensure we only subscribe to tokens that exist
+                valid_ids = [m for m in market_ids if len(str(m)) > 15] # Heuristic for valid Token ID
+                if len(valid_ids) < len(market_ids):
+                     logger.warning(f"Filtered {len(market_ids)-len(valid_ids)} invalid IDs from subscription list")
+                
+                await self.subscribe_to_markets(valid_ids)
+
+                # Seed Order Books via REST to ensure Heartbeat has data
+                logger.info("Seeding Order Books via REST...")
+                for tid in valid_ids:
+                    try:
+                        await self._fetch_snapshot_rest(tid)
+                        await asyncio.sleep(0.05) # Rate limit protection
+                    except Exception as e:
+                        logger.warning(f"Failed to seed {tid}: {e}")
+                
+            # Start background loops
+            asyncio.create_task(self._listen())
+            asyncio.create_task(self._ping_loop())
+            asyncio.create_task(self._heartbeat_snapshot_loop()) # <--- Added Heartbeat
+            
+            while True:
+                await asyncio.sleep(1)
+
+    async def _fetch_snapshot_rest(self, token_id: str):
+        """Fetch initial snapshot from CLOB API to populate cache"""
+        url = f"https://clob.polymarket.com/book?token_id={token_id}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Parse into self.order_books format
+                    bids = data.get('bids', [])
+                    asks = data.get('asks', [])
+                    
+                    best_bid = float(bids[0]['price']) if bids else 0.0
+                    bid_size = float(bids[0]['size']) if bids else 0.0
+                    best_ask = float(asks[0]['price']) if asks else 0.0
+                    ask_size = float(asks[0]['size']) if asks else 0.0
+                    
+                    self.order_books[token_id] = {
+                        'bid_price_1': best_bid,
+                        'bid_size_1': bid_size,
+                        'ask_price_1': best_ask,
+                        'ask_size_1': ask_size
+                    }
+                else:
+                    logger.warning(f"REST Snapshot failed {token_id}: {response.status}")
+
+    async def _heartbeat_snapshot_loop(self):
+        """Force write latest snapshot for all markets every 60s to prevent data gaps during silence."""
+        logger.info("Starting Heartbeat Snapshot Loop...")
+        while self.connected:
+            try:
+                await asyncio.sleep(60)
+                count = 0
+                # Iterate over cached order books
+                for token_id, book in self.order_books.items():
+                    # Construct snapshot from current book state
+                    snapshot = {
+                        'market_id': token_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'mid_price': (book.get('ask_price_1', 0) + book.get('bid_price_1', 0)) / 2,
+                        'best_bid': book.get('bid_price_1', 0),
+                        'best_ask': book.get('ask_price_1', 0),
+                        'spread': book.get('ask_price_1', 0) - book.get('bid_price_1', 0),
+                        'ask_price_1': book.get('ask_price_1', 0),
+                        'ask_size_1': book.get('ask_size_1', 0),
+                        'bid_price_1': book.get('bid_price_1', 0),
+                        'bid_size_1': book.get('bid_size_1', 0),
+                        # Fill rest with 0 or last known
+                    }
+                    try:
+                        self.ingester.ingest_order_book_snapshot(snapshot)
+                        count += 1
+                    except Exception as e:
+                        pass
+                
+                if count > 0:
+                    logger.debug(f"💗 Heartbeat: Wrote {count} snapshots for inactive markets.")
+                    
+            except Exception as e:
+                logger.error(f"Heartbeat Loop Error: {e}")
             return
         
         # Discover markets if not provided

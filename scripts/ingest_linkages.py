@@ -25,9 +25,11 @@ def ingest_data():
     pass
     
     # Files to ingest
+    # Use absolute path to ensure we read from the shared volume
+    script_dir = os.path.dirname(__file__)
     files = [
-        'nba_game_markets.json',       # Polymarket (Tag 100639)
-        'kalshi_verified_games.json'   # Kalshi (KXNBAGAME)
+        os.path.join(script_dir, 'nba_game_markets.json'),       # Polymarket (Tag 100639)
+        os.path.join(script_dir, 'kalshi_verified_games.json')   # Kalshi (KXNBAGAME)
     ]
     
     total_ingested = 0
@@ -53,7 +55,14 @@ def ingest_data():
             team2 = record.get('team2')
             
             if source == 'polymarket':
-                market_id = record.get('market_id')
+                # Prefer CLOB Token ID (Active Trading ID) over Gamma Market ID
+                raw_id = record.get('clob_token_id')
+                if raw_id:
+                    # Use raw ID (Decimal string) because WSS returns Decimal strings and Snapshots store Decimal strings
+                    market_id = raw_id
+                else:
+                    market_id = record.get('market_id')
+
                 original_title = record.get('title')
                 
                 # Parse date from slug if possible, e.g. "nba-mem-min-2025-12-17"

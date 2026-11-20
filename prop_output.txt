@@ -1,0 +1,139 @@
+2026-04-23 15:30:15 | INFO     | src.data_collection.nba_api_collector:_load_cache:72 | Loaded 16 items from NBA cache
+2026-04-23 15:30:15 | INFO     | src.data_collection.nba_api_collector:__init__:59 | NBA data collector initialized (using nba_api)
+2026-04-23 15:30:15 | INFO     | src.data_collection.nba_api_collector:get_todays_games:441 | Found 3 games today
+Fetching active NBA props markets (Tag: 745)...
+Found 184 Active props markets.
+2026-04-23 15:30:19 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Mikal Bridges: 14.4 PPG
+2026-04-23 15:30:20 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Karl-Anthony Towns: 20.1 PPG
+2026-04-23 15:30:22 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Josh Hart: 12.0 PPG
+2026-04-23 15:30:24 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jalen Johnson: 22.5 PPG
+2026-04-23 15:30:24 | WARNING  | src.data_collection.nba_api_collector:fetch_player_stats:309 | Player C.J. McCollum not found
+2026-04-23 15:30:25 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jalen Brunson: 26.0 PPG
+2026-04-23 15:30:27 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Nickeil Alexander-Walker: 20.8 PPG
+2026-04-23 15:30:29 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Onyeka Okongwu: 15.2 PPG
+2026-04-23 15:30:30 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Dyson Daniels: 11.9 PPG
+2026-04-23 15:30:32 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Miles McBride: 12.0 PPG
+2026-04-23 15:30:33 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jordan Clarkson: 8.6 PPG
+2026-04-23 15:30:35 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for OG Anunoby: 16.7 PPG
+2026-04-23 15:30:37 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jonathan Kuminga: 12.2 PPG
+2026-04-23 15:30:38 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Mitchell Robinson: 5.7 PPG
+2026-04-23 15:30:42 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Donovan Mitchell: 27.9 PPG
+2026-04-23 15:30:44 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Dennis Schroder: 10.8 PPG
+2026-04-23 15:30:45 | WARNING  | src.data_collection.nba_api_collector:fetch_player_stats:309 | Player R.J. Barrett not found
+2026-04-23 15:30:46 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Evan Mobley: 18.2 PPG
+2026-04-23 15:30:47 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Brandon Ingram: 21.5 PPG
+2026-04-23 15:30:49 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for James Harden: 23.6 PPG
+2026-04-23 15:30:50 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Scottie Barnes: 18.1 PPG
+2026-04-23 15:30:52 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Immanuel Quickley: 16.4 PPG
+2026-04-23 15:30:54 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Sam Merrill: 12.8 PPG
+2026-04-23 15:30:55 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jarrett Allen: 15.4 PPG
+2026-04-23 15:30:57 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Dean Wade: 5.8 PPG
+2026-04-23 15:30:58 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Sandro Mamukelashvili: 11.2 PPG
+2026-04-23 15:31:00 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Ja'Kobe Walter: 7.5 PPG
+2026-04-23 15:31:02 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Keon Ellis: 6.7 PPG
+2026-04-23 15:31:03 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Collin Murray-Boyles: 8.5 PPG
+2026-04-23 15:31:05 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Max Strus: 11.2 PPG
+2026-04-23 15:31:08 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Ayo Dosunmu: 14.8 PPG
+2026-04-23 15:31:10 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Anthony Edwards: 28.8 PPG
+2026-04-23 15:31:12 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Donte DiVincenzo: 12.2 PPG
+2026-04-23 15:31:14 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jaden McDaniels: 14.8 PPG
+2026-04-23 15:31:15 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Aaron Gordon: 16.2 PPG
+2026-04-23 15:31:17 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Christian Braun: 12.0 PPG
+2026-04-23 15:31:19 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Julius Randle: 21.1 PPG
+2026-04-23 15:31:20 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Jamal Murray: 25.4 PPG
+2026-04-23 15:31:22 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Cameron Johnson: 12.2 PPG
+2026-04-23 15:31:23 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Nikola Jokic: 27.7 PPG
+2026-04-23 15:31:25 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Rudy Gobert: 10.9 PPG
+2026-04-23 15:31:27 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Naz Reid: 13.6 PPG
+2026-04-23 15:31:28 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Tim Hardaway Jr: 13.5 PPG
+2026-04-23 15:31:30 | INFO     | src.data_collection.nba_api_collector:fetch_player_stats:369 | Fetched stats for Bruce Brown: 7.9 PPG
+
+==========================================================================================
+ NBA PLAYER PROP +EV REPORT (UPGRADED) - 2026-04-23 15:31
+==========================================================================================
+PLAYER             | PROP       | LINE  | SIDE  | BOOK         | ODDS   | EV%
+------------------------------------------------------------------------------------------
+Scottie Barnes     | points     | 18.5  | UNDER | FanDuel      |   -122 |   70.4%
+Evan Mobley        | points     | 16.5  | UNDER | FanDuel      |    100 |   64.3%
+Brandon Ingram     | points     | 20.5  | UNDER | FanDuel      |   -114 |   61.1%
+Jalen Johnson      | points     | 20.5  | UNDER | FanDuel      |   -104 |   60.3%
+Nikola Jokic       | points     | 29.5  | UNDER | FanDuel      |   -114 |   58.9%
+Jaden McDaniels    | points     | 15.5  | UNDER | FanDuel      |   -122 |   58.4%
+Jonathan Kuminga   | points     | 12.5  | UNDER | FanDuel      |    100 |   57.0%
+Christian Braun    | points     | 12.5  | UNDER | FanDuel      |   -132 |   46.8%
+OG Anunoby         | points     | 16.5  | UNDER | FanDuel      |   -132 |   43.3%
+Josh Hart          | threes     | 1.5   | OVER  | FanDuel      |    172 |   42.8%
+Rudy Gobert        | rebounds   | 10.5  | UNDER | FanDuel      |   -112 |   40.3%
+Karl-Anthony Towns | points     | 19.5  | UNDER | FanDuel      |   -111 |   37.7%
+Aaron Gordon       | points     | 14.5  | UNDER | FanDuel      |   -120 |   35.9%
+Mikal Bridges      | points     | 12.5  | UNDER | FanDuel      |   -113 |   35.5%
+Naz Reid           | points     | 10.5  | UNDER | FanDuel      |   -104 |   34.9%
+Donovan Mitchell   | points     | 27.5  | UNDER | FanDuel      |   -114 |   34.2%
+Anthony Edwards    | points     | 28.5  | UNDER | FanDuel      |   -110 |   33.1%
+Julius Randle      | points     | 19.5  | UNDER | FanDuel      |   -130 |   30.2%
+Jamal Murray       | points     | 26.5  | UNDER | FanDuel      |   -125 |   29.6%
+Onyeka Okongwu     | points     | 13.5  | UNDER | FanDuel      |   -130 |   29.3%
+Sam Merrill        | rebounds   | 2.5   | OVER  | FanDuel      |    154 |   29.2%
+Collin Murray-Boyles | rebounds   | 5.5   | UNDER | FanDuel      |    108 |   28.2%
+Rudy Gobert        | points     | 10.5  | UNDER | FanDuel      |   -128 |   27.7%
+Naz Reid           | rebounds   | 4.5   | UNDER | FanDuel      |    122 |   27.6%
+Jalen Brunson      | points     | 27.5  | UNDER | FanDuel      |   -128 |   27.5%
+Anthony Edwards    | rebounds   | 5.5   | UNDER | FanDuel      |    112 |   26.6%
+Immanuel Quickley  | threes     | 1.5   | UNDER | FanDuel      |    130 |   26.6%
+Evan Mobley        | assists    | 2.5   | UNDER | FanDuel      |    118 |   26.4%
+Aaron Gordon       | rebounds   | 5.5   | UNDER | FanDuel      |    108 |   25.8%
+Nickeil Alexander-Walker | points     | 19.5  | UNDER | FanDuel      |   -113 |   21.8%
+James Harden       | points     | 19.5  | UNDER | FanDuel      |   -112 |   21.7%
+Donovan Mitchell   | threes     | 2.5   | UNDER | FanDuel      |    116 |   21.7%
+Jarrett Allen      | points     | 12.5  | UNDER | FanDuel      |   -104 |   20.5%
+Immanuel Quickley  | assists    | 3.5   | UNDER | FanDuel      |    114 |   19.9%
+Jamal Murray       | rebounds   | 4.5   | UNDER | FanDuel      |    104 |   19.3%
+Onyeka Okongwu     | rebounds   | 7.5   | UNDER | FanDuel      |   -106 |   19.1%
+Josh Hart          | points     | 11.5  | UNDER | FanDuel      |   -113 |   18.9%
+Dyson Daniels      | assists    | 4.5   | UNDER | FanDuel      |    102 |   18.7%
+Christian Braun    | rebounds   | 4.5   | UNDER | FanDuel      |   -106 |   18.6%
+Jamal Murray       | assists    | 6.5   | UNDER | FanDuel      |    100 |   18.2%
+Nikola Jokic       | assists    | 9.5   | UNDER | FanDuel      |    100 |   18.1%
+Collin Murray-Boyles | points     | 10.5  | UNDER | FanDuel      |   -136 |   17.8%
+Josh Hart          | assists    | 4.5   | UNDER | FanDuel      |   -113 |   17.6%
+Josh Hart          | rebounds   | 8.5   | UNDER | FanDuel      |   -113 |   17.0%
+Cameron Johnson    | points     | 11.5  | UNDER | FanDuel      |   -118 |   16.9%
+James Harden       | threes     | 2.5   | UNDER | FanDuel      |    100 |   16.9%
+Jaden McDaniels    | assists    | 2.5   | UNDER | FanDuel      |   -106 |   15.9%
+Dyson Daniels      | points     | 9.5   | UNDER | FanDuel      |   -104 |   15.4%
+Julius Randle      | assists    | 4.5   | UNDER | FanDuel      |   -110 |   15.4%
+Immanuel Quickley  | rebounds   | 2.5   | UNDER | FanDuel      |   -104 |   15.0%
+Nikola Jokic       | rebounds   | 13.5  | UNDER | FanDuel      |   -120 |   14.9%
+Donte DiVincenzo   | threes     | 2.5   | UNDER | FanDuel      |   -104 |   14.1%
+Dean Wade          | rebounds   | 3.5   | UNDER | FanDuel      |    108 |   14.0%
+Donte DiVincenzo   | points     | 11.5  | UNDER | FanDuel      |   -136 |   13.7%
+James Harden       | assists    | 6.5   | UNDER | FanDuel      |    100 |   13.3%
+Mikal Bridges      | assists    | 2.5   | UNDER | FanDuel      |    120 |   12.9%
+Bruce Brown        | points     | 6.5   | UNDER | FanDuel      |   -114 |   12.9%
+Onyeka Okongwu     | threes     | 1.5   | UNDER | FanDuel      |    116 |   12.9%
+Jalen Johnson      | rebounds   | 9.5   | UNDER | FanDuel      |   -115 |   12.7%
+Julius Randle      | rebounds   | 6.5   | UNDER | FanDuel      |   -114 |   12.1%
+Karl-Anthony Towns | rebounds   | 11.5  | UNDER | FanDuel      |   -120 |   11.6%
+Keon Ellis         | points     | 2.5   | OVER  | FanDuel      |   -114 |   11.3%
+Cameron Johnson    | rebounds   | 3.5   | UNDER | FanDuel      |    102 |   10.8%
+Jordan Clarkson    | points     | 4.5   | UNDER | FanDuel      |    100 |   10.6%
+Ayo Dosunmu        | points     | 11.5  | UNDER | FanDuel      |   -125 |    9.4%
+Sandro Mamukelashvili | points     | 9.5   | UNDER | FanDuel      |   -138 |    9.1%
+Aaron Gordon       | threes     | 1.5   | OVER  | FanDuel      |    114 |    9.1%
+Tim Hardaway Jr    | points     | 10.5  | UNDER | FanDuel      |   -130 |    9.0%
+Max Strus          | rebounds   | 3.5   | UNDER | FanDuel      |   -114 |    9.0%
+Donte DiVincenzo   | rebounds   | 3.5   | UNDER | FanDuel      |   -120 |    9.0%
+Jonathan Kuminga   | rebounds   | 5.5   | UNDER | FanDuel      |   -132 |    8.2%
+Jalen Brunson      | assists    | 6.5   | UNDER | FanDuel      |   -113 |    7.9%
+Ja'Kobe Walter     | points     | 7.5   | UNDER | FanDuel      |   -118 |    7.7%
+Dyson Daniels      | rebounds   | 6.5   | UNDER | FanDuel      |   -122 |    7.6%
+Evan Mobley        | rebounds   | 8.5   | UNDER | FanDuel      |   -114 |    7.1%
+Immanuel Quickley  | points     | 11.5  | UNDER | FanDuel      |   -130 |    7.0%
+Nikola Jokic       | threes     | 1.5   | UNDER | FanDuel      |    100 |    6.9%
+Evan Mobley        | threes     | 0.5   | UNDER | FanDuel      |    102 |    5.7%
+Scottie Barnes     | assists    | 5.5   | UNDER | FanDuel      |   -106 |    5.5%
+Aaron Gordon       | assists    | 2.5   | UNDER | FanDuel      |   -118 |    5.5%
+Donte DiVincenzo   | assists    | 3.5   | UNDER | FanDuel      |   -146 |    5.1%
+Dennis Schroder    | points     | 4.5   | OVER  | FanDuel      |    104 |    5.0%
+
+==========================================================================================

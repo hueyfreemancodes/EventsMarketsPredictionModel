@@ -109,6 +109,14 @@ async def main():
         try:
             current_time = time.time()
             
+            # --- WATCHDOG CHECK ---
+            # If no message received for 300s (5m), KILL PROCESS to trigger Docker restart
+            if hasattr(client, 'last_message_time'):
+                silence_duration = current_time - client.last_message_time
+                if silence_duration > 300:
+                    logger.error(f"🚨 WATCHDOG TRIGGERED: No data for {silence_duration:.0f}s. Exiting to restart...")
+                    sys.exit(1)
+            
             # --- 1. REFRESH PHASE ---
             if current_time - last_refresh_time > REFRESH_INTERVAL:
                 logger.info("🔄 Refreshing Active Markets List...")
@@ -118,8 +126,10 @@ async def main():
                 markets = await loop.run_in_executor(None, fetch_active_nba_markets)
                 
                 if markets:
-                    # B. Update JSON
-                    with open('nba_game_markets.json', 'w') as f:
+                    # B. Update JSON (Write to shared /scripts dir)
+                    # Use absolute path to ensure we hit the mounted volume
+                    market_file = os.path.join(os.path.dirname(__file__), 'nba_game_markets.json')
+                    with open(market_file, 'w') as f:
                         json.dump(markets, f, indent=2)
                         
                     # Dedupe
@@ -141,7 +151,20 @@ async def main():
                                 new_tokens_to_sub.append(token_id)
                     
                     # E. Subscribe to New Tokens
-                    if new_tokens_to_sub and client.connected:
+                    logger.info(f"DEBUG: New Tokens: {len(new_tokens_to_sub)}, Connected: {client.connected}")
+                    
+                    if not client.connected:
+                        logger.warning("🚨 Client Disconnected! forcing Reconnection...")
+                        await client.connect(channel_type="market")
+                        if client.connected:
+                            # Re-subscribe to ALL active tokens
+                            all_active = list(current_tokens)
+                            if all_active:
+                                logger.info(f"Re-subscribing to ALL {len(all_active)} active tokens...")
+                                await client.subscribe_to_markets(all_active, channel_type="market")
+                                subscribed_tokens.update(all_active)
+                    
+                    elif new_tokens_to_sub:
                         logger.info(f"Subscribing to {len(new_tokens_to_sub)} new tokens...")
                         await client.subscribe_to_markets(new_tokens_to_sub, channel_type="market")
                         subscribed_tokens.update(new_tokens_to_sub)
@@ -171,7 +194,13 @@ async def main():
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    from src.utils import ServiceSupervisor
+    
+    def run_collector():
+        try:
+            asyncio.run(main())
+        except KeyboardInterrupt:
+            pass
+
+    supervisor = ServiceSupervisor("PolymarketCollector")
+    supervisor.run(run_collector)

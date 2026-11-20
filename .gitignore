@@ -90,4 +90,8 @@ config/api_keys.py
 # Secrets
 config/kalshi.pem
 config/*.pem
+all_active_events.json
+active_events_batch.json
+raw_nba_*.json
+
 

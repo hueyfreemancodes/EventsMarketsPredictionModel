@@ -1,0 +1,17 @@
+2026-04-23 15:29:59 | INFO     | src.data_collection.nba_api_collector:_load_cache:72 | Loaded 16 items from NBA cache
+2026-04-23 15:29:59 | INFO     | src.data_collection.nba_api_collector:__init__:59 | NBA data collector initialized (using nba_api)
+2026-04-23 15:29:59 | INFO     | src.data_collection.nba_api_collector:get_todays_games:441 | Found 3 games today
+2026-04-23 15:29:59 | INFO     | src.data_collection.nba_api_collector:get_team_advanced_stats:457 | Fetching advanced team metrics for all teams
+
+==========================================================================================
+ NBA GAME LINE +EV REPORT (PHASE 4) - 2026-04-23 15:30
+==========================================================================================
+GAME         | MARKET     | TEAM/SIDE  | LINE  | BOOK         | ODDS   | EV%
+------------------------------------------------------------------------------------------
+NYK @ ATL    | Total      | OVER       | 214.5 | FanDuel      |   -112 |   29.3%
+CLE @ TOR    | Total      | OVER       | 221.5 | FanDuel      |   -112 |   16.1%
+CLE @ TOR    | Spread     | TOR        | 2.5   | FanDuel      |   -105 |    8.2%
+CLE @ TOR    | Moneyline  | TOR        | ML    | FanDuel      |    128 |    8.0%
+DEN @ MIN    | Spread     | MIN        | 2.5   | FanDuel      |   -118 |    4.1%
+
+==========================================================================================

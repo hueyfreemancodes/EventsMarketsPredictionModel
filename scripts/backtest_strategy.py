@@ -34,11 +34,26 @@ def backtest():
     # Filter numeric like training
     numeric_df = test_df.select_dtypes(include=['number'])
     # Exclude targets
-    exclude = ['target_return_60s', 'target_return_5s', 'mid_price', 'spread'] 
+    exclude = ['target_return_60s', 'target_return_5s', 'target_return_10s', 'target_return_180s', 'target_return_300s', 'mid_price'] 
+    # spread IS a feature in V8 specific model, so we keep it.
+    
     # Valid feats
     feats = [c for c in numeric_df.columns if c not in exclude and 'target' not in c]
     
-    X_test = test_df[feats]
+    # Strict ordering to match Training
+    model_cols = [
+        'ofi_1s', 'vamp', 'micro_price', 'spread_volatility', 'ofi_ema_05',
+        'ask_price_1', 'bid_price_1', 'spread',
+        'k_micro_price', 'k_vamp', 'k_ofi', 'k_volatility', 
+        'arb_spread', 'feed_latency', 'team1_win_pct',
+        'team2_win_pct', 'spread_vegas'
+    ]
+    
+    # Ensure all cols exist
+    for c in model_cols:
+        if c not in numeric_df.columns: numeric_df[c] = np.nan
+            
+    X_test = numeric_df[model_cols]
     y_true = test_df['target_return_180s'] # Use the 3-minute target
     
     # 5. Predict

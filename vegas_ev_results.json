@@ -1,0 +1,210 @@
+[
+  {
+    "game": "ORL @ DET",
+    "book": "FanDuel",
+    "team": "DET",
+    "type": "Home",
+    "odds": -650,
+    "true_prob": 0.7155,
+    "implied_prob": 0.8666666666666667,
+    "ev": -0.1744230769230769,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.21959999999999993,
+      "recent_form": 0.0,
+      "home_away_split": 0.2,
+      "point_diff": 0.2024390243902431
+    }
+  },
+  {
+    "game": "ORL @ DET",
+    "book": "FanDuel",
+    "team": "ORL",
+    "type": "Away",
+    "odds": 420,
+    "true_prob": 0.2845,
+    "implied_prob": 0.19230769230769232,
+    "ev": 0.4793999999999998,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.21959999999999993,
+      "recent_form": 0.0,
+      "home_away_split": 0.2,
+      "point_diff": 0.2024390243902431
+    }
+  },
+  {
+    "game": "ORL @ DET",
+    "book": "DraftKings",
+    "team": "DET",
+    "type": "Home",
+    "odds": -810,
+    "true_prob": 0.7155,
+    "implied_prob": 0.8901098901098901,
+    "ev": -0.1961666666666666,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.21959999999999993,
+      "recent_form": 0.0,
+      "home_away_split": 0.2,
+      "point_diff": 0.2024390243902431
+    }
+  },
+  {
+    "game": "ORL @ DET",
+    "book": "DraftKings",
+    "team": "ORL",
+    "type": "Away",
+    "odds": 500,
+    "true_prob": 0.2845,
+    "implied_prob": 0.16666666666666666,
+    "ev": 0.7069999999999999,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.21959999999999993,
+      "recent_form": 0.0,
+      "home_away_split": 0.2,
+      "point_diff": 0.2024390243902431
+    }
+  },
+  {
+    "game": "PHX @ OKC",
+    "book": "DraftKings",
+    "team": "OKC",
+    "type": "Home",
+    "odds": -1800,
+    "true_prob": 0.8002,
+    "implied_prob": 0.9473684210526315,
+    "ev": -0.1553444444444444,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.27719999999999995,
+      "recent_form": 0.0,
+      "home_away_split": 0.16666666666666669,
+      "point_diff": 0.6439024390243916
+    }
+  },
+  {
+    "game": "PHX @ OKC",
+    "book": "DraftKings",
+    "team": "PHX",
+    "type": "Away",
+    "odds": 1000,
+    "true_prob": 0.1998,
+    "implied_prob": 0.09090909090909091,
+    "ev": 1.1978,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.27719999999999995,
+      "recent_form": 0.0,
+      "home_away_split": 0.16666666666666669,
+      "point_diff": 0.6439024390243916
+    }
+  },
+  {
+    "game": "PHX @ OKC",
+    "book": "FanDuel",
+    "team": "OKC",
+    "type": "Home",
+    "odds": -1600,
+    "true_prob": 0.8002,
+    "implied_prob": 0.9411764705882353,
+    "ev": -0.14978749999999996,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.27719999999999995,
+      "recent_form": 0.0,
+      "home_away_split": 0.16666666666666669,
+      "point_diff": 0.6439024390243916
+    }
+  },
+  {
+    "game": "PHX @ OKC",
+    "book": "FanDuel",
+    "team": "PHX",
+    "type": "Away",
+    "odds": 900,
+    "true_prob": 0.1998,
+    "implied_prob": 0.1,
+    "ev": 0.998,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": 0.27719999999999995,
+      "recent_form": 0.0,
+      "home_away_split": 0.16666666666666669,
+      "point_diff": 0.6439024390243916
+    }
+  },
+  {
+    "game": "NYK @ ATL",
+    "book": "DraftKings",
+    "team": "ATL",
+    "type": "Home",
+    "odds": -110,
+    "true_prob": 0.5782,
+    "implied_prob": 0.5238095238095238,
+    "ev": 0.10383636363636373,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": -0.10199999999999995,
+      "recent_form": -0.2,
+      "home_away_split": 0.175,
+      "point_diff": 0.20121951219512227,
+      "market_signal": -0.05883536090431715
+    }
+  },
+  {
+    "game": "NYK @ ATL",
+    "book": "DraftKings",
+    "team": "NYK",
+    "type": "Away",
+    "odds": -110,
+    "true_prob": 0.4218,
+    "implied_prob": 0.5238095238095238,
+    "ev": -0.19474545454545455,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": -0.10199999999999995,
+      "recent_form": -0.2,
+      "home_away_split": 0.175,
+      "point_diff": 0.20121951219512227,
+      "market_signal": -0.05883536090431715
+    }
+  },
+  {
+    "game": "NYK @ ATL",
+    "book": "FanDuel",
+    "team": "ATL",
+    "type": "Home",
+    "odds": -104,
+    "true_prob": 0.5782,
+    "implied_prob": 0.5098039215686274,
+    "ev": 0.13416153846153867,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": -0.10199999999999995,
+      "recent_form": -0.2,
+      "home_away_split": 0.175,
+      "point_diff": 0.20121951219512227,
+      "market_signal": -0.05883536090431715
+    }
+  },
+  {
+    "game": "NYK @ ATL",
+    "book": "FanDuel",
+    "team": "NYK",
+    "type": "Away",
+    "odds": -112,
+    "true_prob": 0.4218,
+    "implied_prob": 0.5283018867924528,
+    "ev": -0.20159285714285713,
+    "factors": {
+      "home_court": 0.3,
+      "win_pct_diff": -0.10199999999999995,
+      "recent_form": -0.2,
+      "home_away_split": 0.175,
+      "point_diff": 0.20121951219512227,
+      "market_signal": -0.05883536090431715
+    }
+  }
+]

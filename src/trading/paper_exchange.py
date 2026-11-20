@@ -6,6 +6,22 @@ from typing import Dict, List, Optional, Tuple
 
 from config.trading_config import INITIAL_CAPITAL, MAX_POSITION_USD
 
+import logging
+import os
+import sys
+
+# Ensure logs dir exists
+os.makedirs("logs", exist_ok=True)
+
+# Setup Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("logs/bot.log")
+    ]
+)
 logger = logging.getLogger(__name__)
 
 import csv
@@ -17,6 +33,7 @@ class PaperExchange:
     Executes orders against supplied Market Snapshots.
     """
     
+    
     def __init__(self, initial_capital: float = INITIAL_CAPITAL):
         self.cash = initial_capital
         self.positions: Dict[str, Dict] = {} # market_id -> {shares, avg_entry, current_value}
@@ -26,7 +43,8 @@ class PaperExchange:
         # Persistence
         self.trade_log_path = "data/paper_trades.csv"
         self._init_trade_log()
-        
+        self._load_history()
+
     def _init_trade_log(self):
         """Initialize CSV with headers if not exists."""
         os.makedirs(os.path.dirname(self.trade_log_path), exist_ok=True)
@@ -34,6 +52,34 @@ class PaperExchange:
             with open(self.trade_log_path, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['timestamp', 'market_id', 'side', 'price', 'shares', 'value', 'limit_price', 'liquidity_avail'])
+
+    def _load_history(self):
+        """Replay trades from CSV to restore Position state."""
+        if not os.path.exists(self.trade_log_path): return
+        
+        try:
+            logger.info("Restoring Portfolio State from History...")
+            with open(self.trade_log_path, 'r') as f:
+                reader = csv.DictReader(f)
+                count = 0
+                for row in reader:
+                    # Parse Types
+                    side = row['side']
+                    try:
+                        price = float(row['price'])
+                        shares = float(row['shares'])
+                        val = float(row['value'])
+                    except ValueError: continue
+                    
+                    market_id = row['market_id']
+                    
+                    # Replay logic (simplified _update_balance)
+                    self._update_balance(side, val, shares, market_id, price)
+                    count += 1
+                    
+            logger.info(f"Restored {len(self.positions)} active positions from {count} historical trades.")
+        except Exception as e:
+            logger.error(f"Failed to load history: {e}")
 
     def _persist_trade(self, trade: Dict):
         """Append trade to CSV."""
@@ -52,6 +98,13 @@ class PaperExchange:
         """Returns current Equity, Cash, and Open Positions."""
         positions_value = sum(p['current_value'] for p in self.positions.values())
         equity = self.cash + positions_value
+        
+        # DEBUG: Dump major positions if equity is weird
+        if equity < 2000 and len(self.positions) > 0:
+             logger.info(f"DEBUG EQUITY CRASH: Cash={self.cash} PosVal={positions_value}")
+             for mid, p in self.positions.items():
+                 logger.info(f"  Pos {mid[:8]}: Shares={p['shares']:.2f} Val={p['current_value']:.2f}")
+
         return {
             'equity': equity,
             'cash': self.cash,
@@ -104,10 +157,13 @@ class PaperExchange:
                 return {'status': 'REJECTED', 'reason': f'Limit {limit_price} above Best Bid {best_price}'}
         
         # 3. Execution (Fill at Best Price)
-        # Calculate shares we can buy with $Size
-        # BUT shares are capped by `available_shares`
+        # If 'shares' matches the order, use it directly (High Precision Close)
+        if 'shares' in order:
+             desired_shares = order['shares']
+        else:
+             # Calculate shares we can buy with $Size
+             desired_shares = size_usd / best_price
         
-        desired_shares = size_usd / best_price
         filled_shares = min(desired_shares, available_shares)
         
         # Did we get a fill?
@@ -157,6 +213,10 @@ class PaperExchange:
                 'avg_entry': new_cost / new_shares if new_shares > 0 else 0.0,
                 'current_value': new_shares * price # Mark to market immediately
             }
+            
+            # Clean up empty positions (Short Cover)
+            if abs(new_shares) < 0.0001:
+                del self.positions[market_id]
             
         elif side == 'SELL':
             self.cash += value
